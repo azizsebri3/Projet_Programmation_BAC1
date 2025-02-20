@@ -3,6 +3,7 @@ from blessed import Terminal
 
 # Initialisation du terminal
 term = Terminal()
+<<<<<<< HEAD
 
 def lire_fichier_drk(nom_fichier: str) -> dict:
     """Lire le fichier et retourner un dictionnaire contenant les données du jeu
@@ -103,3 +104,5 @@ def dessiner_plateau(map : tuple):
 #donnees = lire_fichier_drk("plateau.drk")
 #dessiner_plateau(donnees["map"])
 
+=======
+>>>>>>> cd68673dd60507b09b5507dbb9f5ff395a7b24bc
