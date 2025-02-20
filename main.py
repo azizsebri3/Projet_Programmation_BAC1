@@ -1,64 +1,105 @@
-from blessed import Terminal
 import random
+from blessed import Terminal
 
 # Initialisation du terminal
 term = Terminal()
 
-# Dimensions du plateau
-ROWS, COLS = 20, 20
+def lire_fichier_drk(nom_fichier: str) -> dict:
+    """Lire le fichier et retourner un dictionnaire contenant les données du jeu
+    
+    paramètres:
+        nom_fichier :(str) : le nom du fichier à lire
+        
+        
+    retourne:
+        dict : un dictionnaire contenant les données du jeu (map, altars, apprentices, eggs)
+    . """
+    
+    jeu = {
+        "map": None,
+        "altars": {},
+        "apprentices": {},
+        "eggs": {}
+    }
 
-# Création du plateau vide ('.' représente une case vide)
-plateau = [['.' for _ in range(COLS)] for _ in range(ROWS)]
+    section = None  # Suivi de la section active
+    fichier = open(nom_fichier, "r")  # Ouvrir le fichier
+    
+    for ligne in fichier:
+        ligne = ligne.strip()  # Supprimer les espaces
 
-# Position initiale du joueur
-player_x, player_y = ROWS // 2, COLS // 2
-plateau[player_x][player_y] = '@'  # '@' représente le joueur
+        if ligne == "":
+            pass  # Ignorer les lignes vides
+        elif ligne.startswith("#"):
+            pass  # Ignorer les commentaires
+        elif ligne == "map:" or ligne == "altars:" or ligne == "apprentices:" or ligne == "eggs:":
+            section = ligne  # Mise à jour de la section
+        else:
+            # Lire les données selon la section actuelle
+            if section == "map:":
+                parties = ligne.split()
+                largeur = int(parties[0])
+                hauteur = int(parties[1])
+                jeu["map"] = (largeur, hauteur)
 
-# Placement aléatoire des éléments
-def placer_element(plateau, element, nombre):
-    for _ in range(nombre):
-        while True:
-            x, y = random.randint(0, ROWS-1), random.randint(0, COLS-1)
-            if plateau[x][y] == '.':  # Vérifier que la case est vide
-                plateau[x][y] = element
-                break
+            elif section == "altars:":
+                parties = ligne.split()
+                id_joueur = int(parties[0])
+                x = int(parties[1])
+                y = int(parties[2])
+                jeu["altars"][id_joueur] = (x, y)
 
-placer_element(plateau, 'A', 2)  # 2 autels (A)
-placer_element(plateau, 'P', 5)  # 5 Apprentis (P)
-placer_element(plateau, 'O', 3)  # 3 Œufs (O)
+            elif section == "apprentices:":
+                parties = ligne.split()
+                id_joueur = int(parties[0])
+                nom = parties[1]
+                x = int(parties[2])
+                y = int(parties[3])
+                pv = int(parties[4])
+                regen = int(parties[5])
 
-# Fonction d'affichage du plateau
-def afficher_plateau():
-    print(term.clear())  # Efface l'écran
-    for row in plateau:
-        print(" ".join(row))
+                if id_joueur not in jeu["apprentices"]:
+                    jeu["apprentices"][id_joueur] = []
 
-# Fonction pour gérer le déplacement
-def deplacer_joueur(dx, dy):
-    global player_x, player_y
-    new_x, new_y = player_x + dx, player_y + dy
+                jeu["apprentices"][id_joueur].append({
+                    "nom": nom, "position": (x, y), "pv": pv, "regen": regen
+                })
 
-    # Vérifier si le déplacement est dans les limites
-    if 0 <= new_x < ROWS and 0 <= new_y < COLS:
-        plateau[player_x][player_y] = '.'  # Effacer l'ancienne position
-        player_x, player_y = new_x, new_y
-        plateau[player_x][player_y] = '🐲'  # Mettre le joueur à la nouvelle position
+            elif section == "eggs:":
+                parties = ligne.split()
+                nom = parties[0]
+                x = int(parties[1])
+                y = int(parties[2])
+                tours = int(parties[3])
+                pv = int(parties[4])
+                attaque = int(parties[5])
+                portee = int(parties[6])
+                regen = int(parties[7])
 
-# Boucle principale du jeu
-with term.cbreak():  # Mode interactif
-    afficher_plateau()
-    while True:
-        key = term.inkey()  # Récupère l'entrée clavier
+                jeu["eggs"][(x, y)] = {
+                    "nom": nom, "tours": tours, "pv": pv,
+                    "attaque": attaque, "portee": portee, "regen": regen
+                }
 
-        if key.code == term.KEY_LEFT:
-            deplacer_joueur(0, -1)
-        elif key.code == term.KEY_RIGHT:
-            deplacer_joueur(0, 1)
-        elif key.code == term.KEY_UP:
-            deplacer_joueur(-1, 0)
-        elif key.code == term.KEY_DOWN:
-            deplacer_joueur(1, 0)
-        elif key == 'q':  # Quitter avec 'q'
-            break
+    fichier.close()  # Fermer le fichier après lecture
+    return jeu
 
-        afficher_plateau()
+# dessin plateau avec blessed 
+
+def dessiner_plateau(map : tuple):
+    """Dessiner le plateau de jeu 
+    paramètres:
+        map : tuple : la taille du plateau de jeu (largeur, hauteur)
+        
+    retourne:
+        None
+    """
+    largeur, hauteur = map
+    for i in range(hauteur):
+        for j in range(largeur):
+            print("🟦", end="")
+        print()
+#juste hetha test ll fonction lola temchi wala le !
+#donnees = lire_fichier_drk("plateau.drk")
+#dessiner_plateau(donnees["map"])
+
