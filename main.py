@@ -1,22 +1,21 @@
 import random
 from blessed import Terminal
+from colored import fg, bg, attr
 
 # Initialisation du terminal
 term = Terminal()
-<<<<<<< HEAD
 
-def lire_fichier_drk(nom_fichier: str) -> dict:
-    """Lire le fichier et retourner un dictionnaire contenant les données du jeu
+def read_file(file_name: str) -> dict:
+    """ read file type .drk and return a dictionary of data ( map, altars, apprentices, eggs)
     
-    paramètres:
-        nom_fichier :(str) : le nom du fichier à lire
-        
-        
-    retourne:
-        dict : un dictionnaire contenant les données du jeu (map, altars, apprentices, eggs)
-    . """
+    parameters:
+        file_name (str): the name of the file to read 
     
-    jeu = {
+    returns:
+        dict: a dictionary containing the data of the file (map, altars, apprentices, eggs)
+    """
+    
+    data = {
         "map": None,
         "altars": {},
         "apprentices": {},
@@ -24,85 +23,114 @@ def lire_fichier_drk(nom_fichier: str) -> dict:
     }
 
     section = None  # Suivi de la section active
-    fichier = open(nom_fichier, "r")  # Ouvrir le fichier
+    errors = []  # Liste pour stocker les erreurs au lieu d'utiliser return immédiatement
+    file = open(file_name, "r")  # Ouvrir le fichier
     
-    for ligne in fichier:
-        ligne = ligne.strip()  # Supprimer les espaces
+    # Dictionnaire des positions déjà occupées
+    positions = {
+        "altars": [],
+        "apprentices": [],
+        "eggs": []
+    }
 
-        if ligne == "":
-            pass  # Ignorer les lignes vides
-        elif ligne.startswith("#"):
-            pass  # Ignorer les commentaires
-        elif ligne == "map:" or ligne == "altars:" or ligne == "apprentices:" or ligne == "eggs:":
-            section = ligne  # Mise à jour de la section
-        else:
-            # Lire les données selon la section actuelle
-            if section == "map:":
-                parties = ligne.split()
-                largeur = int(parties[0])
-                hauteur = int(parties[1])
-                jeu["map"] = (largeur, hauteur)
-
-            elif section == "altars:":
-                parties = ligne.split()
-                id_joueur = int(parties[0])
-                x = int(parties[1])
-                y = int(parties[2])
-                jeu["altars"][id_joueur] = (x, y)
-
-            elif section == "apprentices:":
-                parties = ligne.split()
-                id_joueur = int(parties[0])
-                nom = parties[1]
-                x = int(parties[2])
-                y = int(parties[3])
-                pv = int(parties[4])
-                regen = int(parties[5])
-
-                if id_joueur not in jeu["apprentices"]:
-                    jeu["apprentices"][id_joueur] = []
-
-                jeu["apprentices"][id_joueur].append({
-                    "nom": nom, "position": (x, y), "pv": pv, "regen": regen
-                })
-
-            elif section == "eggs:":
-                parties = ligne.split()
-                nom = parties[0]
-                x = int(parties[1])
-                y = int(parties[2])
-                tours = int(parties[3])
-                pv = int(parties[4])
-                attaque = int(parties[5])
-                portee = int(parties[6])
-                regen = int(parties[7])
-
-                jeu["eggs"][(x, y)] = {
-                    "nom": nom, "tours": tours, "pv": pv,
-                    "attaque": attaque, "portee": portee, "regen": regen
-                }
-
-    fichier.close()  # Fermer le fichier après lecture
-    return jeu
-
-# dessin plateau avec blessed 
-
-def dessiner_plateau(map : tuple):
-    """Dessiner le plateau de jeu 
-    paramètres:
-        map : tuple : la taille du plateau de jeu (largeur, hauteur)
+    for line in file:
+        line = line.strip()  # Supprimer les espaces
         
-    retourne:
-        None
-    """
-    largeur, hauteur = map
-    for i in range(hauteur):
-        for j in range(largeur):
-            print("🟦", end="")
-        print()
-#juste hetha test ll fonction lola temchi wala le !
-#donnees = lire_fichier_drk("plateau.drk")
-#dessiner_plateau(donnees["map"])
+        if line != "":
+            if line in ["map:", "altars:", "apprentices:", "eggs:"]:
+                section = line  # Mise à jour de la section
+            else:
+                # Lire les données selon la section actuelle
+                if section == "map:":
+                    parties = line.split()
+                    largeur = int(parties[0])
+                    hauteur = int(parties[1])
+                    data["map"] = (largeur, hauteur)
 
-=======
->>>>>>> cd68673dd60507b09b5507dbb9f5ff395a7b24bc
+                elif section == "altars:":
+                    parties = line.split()
+                    id_joueur = int(parties[0])
+                    x = int(parties[1])
+                    y = int(parties[2])
+                    
+                    # Vérification des conflits
+                    if (x, y) in positions["altars"]:
+                        errors.append(f"❌ Erreur: Autel du joueur {id_joueur} en conflit avec un autre autel à ({x}, {y})")
+                    if (x, y) in positions["apprentices"]:
+                        errors.append(f"❌ Erreur: Autel du joueur {id_joueur} en conflit avec un apprenti à ({x}, {y})")
+                    if (x, y) in positions["eggs"]:
+                        errors.append(f"❌ Erreur: Autel du joueur {id_joueur} en conflit avec un œuf à ({x}, {y})")
+
+                    data["altars"][id_joueur] = (x, y)
+                    positions["altars"].append((x, y))
+
+                elif section == "apprentices:":
+                    parties = line.split()   
+                    id_joueur = int(parties[0])
+                    nom = parties[1]
+                    x = int(parties[2])
+                    y = int(parties[3])
+                    pv = int(parties[4])
+                    regen = int(parties[5])
+                    
+                    # Vérification des conflits
+                    if (x, y) in positions["altars"]:
+                        errors.append(f"❌ Erreur: Apprenti {nom} en conflit avec un autel à ({x}, {y})")
+                    if (x, y) in positions["apprentices"]:
+                        errors.append(f"❌ Erreur: Apprenti {nom} en conflit avec un autre apprenti à ({x}, {y})")
+                    if (x, y) in positions["eggs"]:
+                        errors.append(f"❌ Erreur: Apprenti {nom} en conflit avec un œuf à ({x}, {y})")
+
+                    if id_joueur not in data["apprentices"]:
+                        data["apprentices"][id_joueur] = []
+
+                    data["apprentices"][id_joueur].append({
+                        "nom": nom, "position": (x, y), "pv": pv, "regen": regen
+                    })
+                    positions["apprentices"].append((x, y))
+
+                elif section == "eggs:":
+                    parties = line.split()
+                    nom = parties[0]
+                    x = int(parties[1])
+                    y = int(parties[2])
+                    tours = int(parties[3])
+                    pv = int(parties[4])
+                    attaque = int(parties[5])
+                    portee = int(parties[6])
+                    regen = int(parties[7])
+                    
+                    # Vérification des conflits
+                    if (x, y) in positions["altars"]:
+                        errors.append(f"❌ Erreur: Œuf {nom} en conflit avec un autel à ({x}, {y})")
+                    if (x, y) in positions["apprentices"]:
+                        errors.append(f"❌ Erreur: Œuf {nom} en conflit avec un apprenti à ({x}, {y})")
+                    if (x, y) in positions["eggs"]:
+                        errors.append(f"❌ Erreur: Œuf {nom} en conflit avec un autre œuf à ({x}, {y})")
+
+                    data["eggs"][(x, y)] = {
+                        "nom": nom, "tours": tours, "pv": pv,
+                        "attaque": attaque, "portee": portee, "regen": regen
+                    }
+                    positions["eggs"].append((x, y))
+
+    file.close()  # Fermer le fichier après lecture
+
+    # Afficher toutes les erreurs si elles existent
+    if errors:
+        for error in errors:
+            print(error)
+        return None  # Retourner None pour indiquer un problème
+
+    print(data)
+
+
+
+
+
+# Lire le file de données
+read_file("plateau.drk")
+
+
+
+
