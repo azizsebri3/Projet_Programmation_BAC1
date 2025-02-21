@@ -124,7 +124,7 @@ def read_file(file_name: str) -> dict:
 
     return data
 
-def initialiser_plateau(data):
+def init_plateau(data):
     """initilze the board with the data read from the file
     
 
@@ -240,8 +240,8 @@ def main():
     if data is None:
         return
 
-    # Initialiser le plateau
-    plateau = initialiser_plateau(data)
+    # init le plateau
+    plateau = init_plateau(data)
 
     # Afficher le plateau
     afficher_plateau(plateau)
