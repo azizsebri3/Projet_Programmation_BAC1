@@ -122,15 +122,131 @@ def read_file(file_name: str) -> dict:
             print(error)
         return None  # Retourner None pour indiquer un problème
 
-    print(data)
+    return data
 
+def initialiser_plateau(data):
+    """initilze the board with the data read from the file
+    
 
+    Args:
+        data (dict): a dictionary containing the data of the file (map, altars, apprentices, eggs)
 
+    Returns:
+        list: a list of lists representing the board
+    """
+    largeur,hauteur = data["map"]
 
+    # Créer le plateau vide
+    plateau = []
+    
+    for i in range(hauteur):
+        ligne = []
+        for j in range(largeur):
+            ligne.append([]) # chaque case de plateu est un list (car on peut trouver deux element sur la meme case :) ) 
+        plateau.append(ligne)
 
-# Lire le file de données
-read_file("plateau.drk")
+    # Placer les altars
+    for joueur, (x, y) in data["altars"].items():
+        if 1 <= x <= hauteur and 1 <= y <= largeur:  # Vérifier les coordonnées
+            plateau[x-1][y-1].append({
+                "type" : "altar",
+                "player" :joueur 
+            })
+        else:
+            print(f"❌ Erreur: Coordonnées invalides pour l'autel du joueur {joueur} : ({x}, {y})")
 
+    # Placer les apprentis
+    for joueur, apprentices in data["apprentices"].items():
+        for apprentice in apprentices:
+            x, y = apprentice["position"]
+            if 1 <= x <= hauteur and 1 <= y <= largeur:  # Vérifier les coordonnées
+                plateau[x-1][y-1].append({
+                    "type" : "apprenti" ,
+                    "nom": apprentice["nom"],
+                    "joueur": joueur,
+                    "pv": apprentice["pv"],
+                    "regen": apprentice["regen"]
+                })
+            else:
+                print(f"❌ Erreur: Coordonnées invalides pour l'apprenti {apprentice['nom']} : ({x}, {y})")
 
+    # Placer les œufs
+    for (x, y), egg in data["eggs"].items():
+        if 1 <= x <= hauteur and 1 <= y <= largeur:  # Vérifier les coordonnées
+            plateau[x-1][y-1].append({
+                "type" : "egg" ,
+                "nom": egg["nom"],
+                "tours": egg["tours"],
+                "pv": egg["pv"],
+                "attaque": egg["attaque"],
+                "portee": egg["portee"],
+                "regen": egg["regen"]
+            })
+        else:
+            print(f"❌ Erreur: Coordonnées invalides pour l'œuf {egg['nom']} : ({x}, {y})")
+
+    return plateau
+ 
+
+def afficher_plateau(plateau):
+    """
+    Affiche le plateau de jeu dans le terminal avec des emojis et des couleurs.
+    Cette version est conçue pour être facile à comprendre pour des étudiants.
+
+    Parameters:
+        plateau (list): Une liste de listes représentant le plateau de jeu.
+                       Chaque case du plateau est une liste de dictionnaires décrivant les éléments présents.
+    """
+    # 1. Effacer l'écran pour un affichage propre
+    print(term.clear)
+
+    # 2. Parcourir chaque ligne du plateau
+    for i in range(len(plateau)):  # i est l'indice de la ligne
+        # 3. Parcourir chaque case de la ligne
+        for j in range(len(plateau[i])):  # j est l'indice de la colonne
+            # 4. Déplacer le curseur à la position (j * 2, i)
+            # Cela permet d'afficher les éléments au bon endroit dans le terminal.
+            print(term.move_xy(j * 2, i), end="")
+
+            # 5. Vérifier ce qui se trouve dans la case et l'afficher
+            # On parcourt manuellement les éléments de la case pour déterminer ce qui doit être affiché.
+            afficher_element = "."  # Par défaut, la case est vide
+            case = plateau[i][j]  # Récupérer la case actuelle
+            for element in case:
+                if element["type"] == "altar":
+                    afficher_element = term.bold_red("🏰")  # Autel en rouge
+                    break  # On affiche l'autel en priorité
+                elif element["type"] == "apprenti":
+                    afficher_element = term.bold_blue("🧙")  # Apprenti en bleu
+                elif element["type"] == "egg":
+                    afficher_element = term.bold_yellow("🥚")  # Œuf en jaune
+                elif element["type"] == "dragon":
+                    afficher_element = term.bold_green("🐉")  # Dragon en vert
+
+            # 6. Afficher l'élément de la case avec un espace pour la lisibilité
+            print(afficher_element, end=" ")
+
+        # 7. Passer à la ligne suivante après avoir affiché une ligne du plateau
+        print()
+
+    # 8. Afficher une légende pour expliquer les symboles
+    print(term.move_xy(0, len(plateau) + 1))  # Déplacer le curseur en bas du plateau
+    print(term.bold("Légende :"))  # Titre de la légende en gras
+    print(term.red("🏰 = Autel"), term.blue("🧙 = Apprentis"), term.yellow("🥚 = Œufs"), term.green("🐉 = Dragons"))
+
+def main():
+    # Lire les données du fichier
+    data = read_file("plateau.drk")
+    if data is None:
+        return
+
+    # Initialiser le plateau
+    plateau = initialiser_plateau(data)
+
+    # Afficher le plateau
+    afficher_plateau(plateau)
+
+if __name__ == "__main__":
+    main()
 
 
