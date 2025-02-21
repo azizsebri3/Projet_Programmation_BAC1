@@ -55,11 +55,11 @@ def read_file(file_name: str) -> dict:
                     
                     # Vérification des conflits
                     if (x, y) in positions["altars"]:
-                        errors.append(f"❌ Erreur: Autel du joueur {id_joueur} en conflit avec un autre autel à ({x}, {y})")
+                        errors.append(f"❌ Erreur: altar du joueur {id_joueur} en conflit avec un autre altar à ({x}, {y})")
                     if (x, y) in positions["apprentices"]:
-                        errors.append(f"❌ Erreur: Autel du joueur {id_joueur} en conflit avec un apprenti à ({x}, {y})")
+                        errors.append(f"❌ Erreur: altar du joueur {id_joueur} en conflit avec un apprenti à ({x}, {y})")
                     if (x, y) in positions["eggs"]:
-                        errors.append(f"❌ Erreur: Autel du joueur {id_joueur} en conflit avec un œuf à ({x}, {y})")
+                        errors.append(f"❌ Erreur: altar du joueur {id_joueur} en conflit avec un œuf à ({x}, {y})")
 
                     data["altars"][id_joueur] = (x, y)
                     positions["altars"].append((x, y))
@@ -75,7 +75,7 @@ def read_file(file_name: str) -> dict:
                     
                     # Vérification des conflits
                     if (x, y) in positions["altars"]:
-                        errors.append(f"❌ Erreur: Apprenti {nom} en conflit avec un autel à ({x}, {y})")
+                        errors.append(f"❌ Erreur: Apprenti {nom} en conflit avec un altar à ({x}, {y})")
                     if (x, y) in positions["apprentices"]:
                         errors.append(f"❌ Erreur: Apprenti {nom} en conflit avec un autre apprenti à ({x}, {y})")
                     if (x, y) in positions["eggs"]:
@@ -102,7 +102,7 @@ def read_file(file_name: str) -> dict:
                     
                     # Vérification des conflits
                     if (x, y) in positions["altars"]:
-                        errors.append(f"❌ Erreur: Œuf {nom} en conflit avec un autel à ({x}, {y})")
+                        errors.append(f"❌ Erreur: Œuf {nom} en conflit avec un altar à ({x}, {y})")
                     if (x, y) in positions["apprentices"]:
                         errors.append(f"❌ Erreur: Œuf {nom} en conflit avec un apprenti à ({x}, {y})")
                     if (x, y) in positions["eggs"]:
@@ -153,7 +153,7 @@ def initialiser_plateau(data):
                 "player" :joueur 
             })
         else:
-            print(f"❌ Erreur: Coordonnées invalides pour l'autel du joueur {joueur} : ({x}, {y})")
+            print(f"❌ Erreur: Coordonnées invalides pour l'altar du joueur {joueur} : ({x}, {y})")
 
     # Placer les apprentis
     for joueur, apprentices in data["apprentices"].items():
@@ -214,8 +214,8 @@ def afficher_plateau(plateau):
             case = plateau[i][j]  # Récupérer la case actuelle
             for element in case:
                 if element["type"] == "altar":
-                    afficher_element = term.bold_red("🏰")  # Autel en rouge
-                    break  # On affiche l'autel en priorité
+                    afficher_element = term.bold_red("🏰")  # altar en rouge
+                    break  # On affiche l'altar en priorité
                 elif element["type"] == "apprenti":
                     afficher_element = term.bold_blue("🧙")  # Apprenti en bleu
                 elif element["type"] == "egg":
@@ -232,7 +232,7 @@ def afficher_plateau(plateau):
     # 8. Afficher une légende pour expliquer les symboles
     print(term.move_xy(0, len(plateau) + 1))  # Déplacer le curseur en bas du plateau
     print(term.bold("Légende :"))  # Titre de la légende en gras
-    print(term.red("🏰 = Autel"), term.blue("🧙 = Apprentis"), term.yellow("🥚 = Œufs"), term.green("🐉 = Dragons"))
+    print(term.red("🏰 = altar"), term.blue("🧙 = Apprentis"), term.yellow("🥚 = Œufs"), term.green("🐉 = Dragons"))
 
 def main():
     # Lire les données du fichier
