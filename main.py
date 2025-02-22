@@ -6,14 +6,19 @@ from colored import fg, bg, attr
 term = Terminal()
 
 def read_file(file_name: str) -> dict:
-    """ read file type .drk and return a dictionary of data ( map, altars, apprentices, eggs)
     
-    parameters:
-        file_name (str): the name of the file to read 
+    """ This function reads the file type .drk and returns a dictionary containing the data ( map, altars, apprentices, eggs).
     
-    returns:
-        dict: a dictionary containing the data of the file (map, altars, apprentices, eggs)
+        Parameters:
+        -----------
+         file_name (str): the name of the file to read. 
+    
+        returns:
+        --------
+         data (dict): a dictionary containing the various data of the file (map, altars, apprentices, eggs)
     """
+    
+    
     
     data = {
         "map": None,
@@ -21,10 +26,11 @@ def read_file(file_name: str) -> dict:
         "apprentices": {},
         "eggs": {}
     }
-
+    
+    
     section = None  # Suivi de la section active
-    errors = []  # Liste pour stocker les erreurs au lieu d'utiliser return immédiatement
-    file = open(file_name, "r")  # Ouvrir le fichier
+    errors = []  # Liste pour stocker les erreurs 
+    file = open(file_name, "r") 
     
     # Dictionnaire des positions déjà occupées
     positions = {
@@ -54,12 +60,7 @@ def read_file(file_name: str) -> dict:
                     y = int(parties[2])
                     
                     # Vérification des conflits
-                    if (x, y) in positions["altars"]:
-                        errors.append(f"❌ Erreur: Autel du joueur {id_joueur} en conflit avec un autre autel à ({x}, {y})")
-                    if (x, y) in positions["apprentices"]:
-                        errors.append(f"❌ Erreur: Autel du joueur {id_joueur} en conflit avec un apprenti à ({x}, {y})")
-                    if (x, y) in positions["eggs"]:
-                        errors.append(f"❌ Erreur: Autel du joueur {id_joueur} en conflit avec un œuf à ({x}, {y})")
+                    check_position(x,y,positions,errors)
 
                     data["altars"][id_joueur] = (x, y)
                     positions["altars"].append((x, y))
@@ -74,12 +75,7 @@ def read_file(file_name: str) -> dict:
                     regen = int(parties[5])
                     
                     # Vérification des conflits
-                    if (x, y) in positions["altars"]:
-                        errors.append(f"❌ Erreur: Apprenti {nom} en conflit avec un autel à ({x}, {y})")
-                    if (x, y) in positions["apprentices"]:
-                        errors.append(f"❌ Erreur: Apprenti {nom} en conflit avec un autre apprenti à ({x}, {y})")
-                    if (x, y) in positions["eggs"]:
-                        errors.append(f"❌ Erreur: Apprenti {nom} en conflit avec un œuf à ({x}, {y})")
+                    check_position(x,y,positions,errors)
 
                     if id_joueur not in data["apprentices"]:
                         data["apprentices"][id_joueur] = []
@@ -101,12 +97,7 @@ def read_file(file_name: str) -> dict:
                     regen = int(parties[7])
                     
                     # Vérification des conflits
-                    if (x, y) in positions["altars"]:
-                        errors.append(f"❌ Erreur: Œuf {nom} en conflit avec un autel à ({x}, {y})")
-                    if (x, y) in positions["apprentices"]:
-                        errors.append(f"❌ Erreur: Œuf {nom} en conflit avec un apprenti à ({x}, {y})")
-                    if (x, y) in positions["eggs"]:
-                        errors.append(f"❌ Erreur: Œuf {nom} en conflit avec un autre œuf à ({x}, {y})")
+                    check_position(x,y,positions,errors)
 
                     data["eggs"][(x, y)] = {
                         "nom": nom, "tours": tours, "pv": pv,
@@ -118,50 +109,99 @@ def read_file(file_name: str) -> dict:
 
     # Afficher toutes les erreurs si elles existent
     if errors:
-        for error in errors:
-            print(error)
-        return None  # Retourner None pour indiquer un problème
+        error_messages = "\n".join(errors)
+        raise ValueError(f" Erreurs détectées lors de la lecture du fichier:\n{error_messages}")
 
     return data
 
-def initialiser_plateau(data):
-    """initilze the board with the data read from the file
+def check_position(x : int, y: int, dict : list, errors):
+    """ This function checks if the position is valid or not. 
     
+        Parameters:
+        -----------
+         x (int): the x coordinate of the position to check.
+         y (int): the y coordinate of the position to check.
+         dict (list): a dictionary that contains all the positions of the elements on the board.
+         errors (list): a list that contains all the errors detected during the reading of the file.
+    
+        Returns:
+        --------
+         None
+    """
+    
+    if (x, y) in dict["altars"] :
+        errors.append(f"❌ Position déjà occupée par un altar : ({x}, {y})")
+    
+    elif (x,y) in dict["apprentices"] :
+        errors.append(f"❌ Position déjà occupée par un apprenti: ({x}, {y})")
+    
+    else:
+        errors.append(f"❌ Position déjà occupée par un œuf : ({x}, {y})")
 
-    Args:
-        data (dict): a dictionary containing the data of the file (map, altars, apprentices, eggs)
+def init_board(data):
+    """ 
+    initalizes the board with the data read from the file.drk.
+
+    Parameters:
+    ------------
+    data (dict): a dictionary containing the data of the file (map, altars, apprentices, eggs)
 
     Returns:
-        list: a list of lists representing the board
+    --------
+    list: a list of lists representing the board
     """
-    largeur,hauteur = data["map"]
+    largeur = data["map"][0]
+    hauteur = data["map"][1]
 
-    # Créer le plateau vide
-    plateau = []
-    
+    board = []  # Initialiser le plateau vide
     for i in range(hauteur):
-        ligne = []
+        board.append([])
         for j in range(largeur):
-            ligne.append([]) # chaque case de plateu est un list (car on peut trouver deux element sur la meme case :) ) 
-        plateau.append(ligne)
+            board[i].append([])
+        
 
-    # Placer les altars
+    # Placer les différents éléments sur le plateau
+    place_altars(board, data)
+    place_apprentices(board, data)
+    place_eggs(board, data)
+
+    return board
+
+
+def place_altars(board, data):
+    """
+    place the alrars on the board.
+
+    Parameters:
+    ------------
+    board (list): the board of the game.
+    data (dict):  the data containing the altars.
+    """
     for joueur, (x, y) in data["altars"].items():
-        if 1 <= x <= hauteur and 1 <= y <= largeur:  # Vérifier les coordonnées
-            plateau[x-1][y-1].append({
-                "type" : "altar",
-                "player" :joueur 
+        if 1 <= x <= len(board) and 1 <= y <= len(board[0]):  # Vérifier les coordonnées
+            board[x-1][y-1].append({
+                "type": "altar",
+                "player": joueur
             })
         else:
-            print(f"❌ Erreur: Coordonnées invalides pour l'autel du joueur {joueur} : ({x}, {y})")
+            print(f"❌ Erreur: Coordonnées invalides pour l'altar du joueur {joueur} : ({x}, {y})")
 
-    # Placer les apprentis
+
+def place_apprentices(board, data):
+    """
+    place the apprentices on the board.
+
+    Parameters:
+    ------------
+    board (list): the board of the game.
+    data (dict): the data containing the apprentices.
+    """
     for joueur, apprentices in data["apprentices"].items():
         for apprentice in apprentices:
             x, y = apprentice["position"]
-            if 1 <= x <= hauteur and 1 <= y <= largeur:  # Vérifier les coordonnées
-                plateau[x-1][y-1].append({
-                    "type" : "apprenti" ,
+            if 1 <= x <= len(board) and 1 <= y <= len(board[0]):  # Vérifier les coordonnées
+                board[x-1][y-1].append({
+                    "type": "apprenti",
                     "nom": apprentice["nom"],
                     "joueur": joueur,
                     "pv": apprentice["pv"],
@@ -170,11 +210,20 @@ def initialiser_plateau(data):
             else:
                 print(f"❌ Erreur: Coordonnées invalides pour l'apprenti {apprentice['nom']} : ({x}, {y})")
 
-    # Placer les œufs
+
+def place_eggs(board, data):
+    """
+    place the eggs on the board.
+    
+    Parameters:
+    ------------
+    board (list): the board of the game.
+    data (dict): the data containing the eggs.
+    """
     for (x, y), egg in data["eggs"].items():
-        if 1 <= x <= hauteur and 1 <= y <= largeur:  # Vérifier les coordonnées
-            plateau[x-1][y-1].append({
-                "type" : "egg" ,
+        if 1 <= x <= len(board) and 1 <= y <= len(board[0]):  # Vérifier les coordonnées
+            board[x-1][y-1].append({
+                "type": "egg",
                 "nom": egg["nom"],
                 "tours": egg["tours"],
                 "pv": egg["pv"],
@@ -185,25 +234,25 @@ def initialiser_plateau(data):
         else:
             print(f"❌ Erreur: Coordonnées invalides pour l'œuf {egg['nom']} : ({x}, {y})")
 
-    return plateau
- 
 
-def afficher_plateau(plateau):
+def display_board(board):
     """
-    Affiche le plateau de jeu dans le terminal avec des emojis et des couleurs.
-    Cette version est conçue pour être facile à comprendre pour des étudiants.
+    This functions allows us to print the board in the terminal .
 
     Parameters:
-        plateau (list): Une liste de listes représentant le plateau de jeu.
-                       Chaque case du plateau est une liste de dictionnaires décrivant les éléments présents.
+    ----------
+        board (list): a list of lists representing the board game.
+        Each game board square is a list of dictionaries that could contain one or more elements of the game in the board. 
+        
     """
+
     # 1. Effacer l'écran pour un affichage propre
     print(term.clear)
 
-    # 2. Parcourir chaque ligne du plateau
-    for i in range(len(plateau)):  # i est l'indice de la ligne
+    # 2. Parcourir chaque ligne du board
+    for i in range(len(board)):  # i est l'indice de la ligne
         # 3. Parcourir chaque case de la ligne
-        for j in range(len(plateau[i])):  # j est l'indice de la colonne
+        for j in range(len(board[i])):  # j est l'indice de la colonne
             # 4. Déplacer le curseur à la position (j * 2, i)
             # Cela permet d'afficher les éléments au bon endroit dans le terminal.
             print(term.move_xy(j * 2, i), end="")
@@ -211,11 +260,11 @@ def afficher_plateau(plateau):
             # 5. Vérifier ce qui se trouve dans la case et l'afficher
             # On parcourt manuellement les éléments de la case pour déterminer ce qui doit être affiché.
             afficher_element = "."  # Par défaut, la case est vide
-            case = plateau[i][j]  # Récupérer la case actuelle
+            case = board[i][j]  # Récupérer la case actuelle
             for element in case:
                 if element["type"] == "altar":
-                    afficher_element = term.bold_red("🏰")  # Autel en rouge
-                    break  # On affiche l'autel en priorité
+                    afficher_element = term.bold_red("🏰")  # altar en rouge
+                    break  # On affiche l'altar en priorité
                 elif element["type"] == "apprenti":
                     afficher_element = term.bold_blue("🧙")  # Apprenti en bleu
                 elif element["type"] == "egg":
@@ -226,27 +275,143 @@ def afficher_plateau(plateau):
             # 6. Afficher l'élément de la case avec un espace pour la lisibilité
             print(afficher_element, end=" ")
 
-        # 7. Passer à la ligne suivante après avoir affiché une ligne du plateau
+        # 7. Passer à la ligne suivante après avoir affiché une ligne du board
         print()
 
     # 8. Afficher une légende pour expliquer les symboles
-    print(term.move_xy(0, len(plateau) + 1))  # Déplacer le curseur en bas du plateau
+    print(term.move_xy(0, len(board) + 1))  # Déplacer le curseur en bas du board
     print(term.bold("Légende :"))  # Titre de la légende en gras
-    print(term.red("🏰 = Autel"), term.blue("🧙 = Apprentis"), term.yellow("🥚 = Œufs"), term.green("🐉 = Dragons"))
-
-def main():
-    # Lire les données du fichier
-    data = read_file("plateau.drk")
-    if data is None:
-        return
-
-    # Initialiser le plateau
-    plateau = initialiser_plateau(data)
-
-    # Afficher le plateau
-    afficher_plateau(plateau)
-
-if __name__ == "__main__":
-    main()
+    print(term.red("🏰 = altar"), term.blue("🧙 = Apprentis"), term.yellow("🥚 = Œufs"), term.green("🐉 = Dragons"))
 
 
+
+def tri_orders (orders : str) -> list:
+    """ This function will allow us to sort out the different instructions received by the player. 
+
+    Parameters : 
+    ------------
+    orders (str): the orders received by the player 
+
+    Returns : 
+    ---------
+    orders_tri (list) : a list of the instructions by order
+"""
+    orders = orders.split(" ")
+    orders_tri = []
+    
+    for order in orders:
+        order = order.strip()
+        
+        if ":x" in order:
+            try : 
+                name , direction = order.split(":x")
+                directions_valides = {"N", "NE", "E", "SE", "S", "SW", "W" , "NW"}
+                if direction in directions_valides:
+                    orders_tri.append({
+                        "type": "attack",
+                        "name": name,
+                        "direction": direction
+                    })
+                else:
+                    print(f"Direction invalide pour l'attaque : {direction}")
+            
+            except ValueError:
+                print(f" Erreur: Attaque invalide : {order}")
+        
+        elif ":@" in order :
+            try : 
+                name , position = order.split(":@")
+                r, c = position.split("-")
+                orders_tri.append({
+                    "type": "move",
+                    "name": name,
+                    "row": int(r),
+                    "col": int(c)
+                })
+            except ValueError:
+                print(f" Erreur: Déplacement invalide : {order}")
+        elif order =="summon":
+            orders_tri.append({
+                "type": "summon"
+            })
+            
+        else:
+            print(f" Erreur: Ordre invalide ignoré : {order}")
+            
+    return orders_tri
+
+    
+
+    
+    
+    
+def move (order : str):
+    """ This function receives the order to move the player's dragons and apprentices to the desired position. 
+
+    Parameters :
+    ------------
+    order (str): the order received by the player to move
+    
+    Returns :
+    ---------
+    None 
+
+    """
+    
+
+
+def check_valid_move (x : int, y : int) -> bool:
+    """ This function checks if the move is valid or not. 
+
+    Parameters : 
+    ------------
+    x (int): the x coordinate of the move 
+    y (int): the y coordinate of the move 
+
+    Returns : 
+    ---------
+    bool : True if the move is valid, False otherwise
+    """
+
+def attack (order : str):
+    """ This function receives the order to attack and allows the dragon to attack the other dragons or the apprentices within his range. 
+
+    Parameters : 
+    ------------
+    order (str): the order received by the player to attack 
+
+    Returns : 
+    ---------
+    None 
+
+    """
+    
+
+def summon (data): 
+    """ This function receives the order to summon the player's dragons and apprentices to his altar.
+
+    Parameters : 
+    ------------
+    data : a dictionnary that contains all the board informations. 
+
+    Returns : 
+    ---------
+    None 
+
+    """
+
+
+def regenerate(board):
+    
+
+    """ This function allows the dragons and the apprentices to regenerate their health points.
+
+    Parameters : 
+    ------------
+    board (list): the board of the game. 
+
+    Returns : 
+    ---------
+    None 
+
+    """
