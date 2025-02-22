@@ -95,8 +95,8 @@ def display_board(board):
 
 
 
-def tri_orders (orders : str): list
-""" 
+def tri_orders (orders : str) -> list:
+    """ 
     This function will allow us to sort out the different instructions received by the player. 
     Parameters : 
     ------------
@@ -108,8 +108,8 @@ def tri_orders (orders : str): list
 
     """
 
-def move (order : str , board : list): None
-"""
+def move (order : str , board : list):
+    """
     This function receives the order to move and allows the dragon to move on the board.
     
     Parameters :
@@ -123,8 +123,8 @@ def move (order : str , board : list): None
     """
 
 
-def attack (order : str , board :list): None 
-""" 
+def attack (order : str , board :list):
+    """ 
     This function receives the order to attack and allows the dragon to attack the other dragons or the apprentices within his range. 
     
     Parameters : 
@@ -137,8 +137,8 @@ def attack (order : str , board :list): None
 
     """
 
-def magic_bond (board: list, apprentices: dict, dragons: list): None
-""" 
+def magic_bond (board: list, apprentices: dict, dragons: list):
+    """ 
     This function sets the magical bond between the apprentices and their dragons according to the eggs they have hatched.
 
     Parameters:
@@ -153,8 +153,8 @@ def magic_bond (board: list, apprentices: dict, dragons: list): None
     """
 
 
-def summon (order : str , board : list): None 
-""" This function receives the order to summon the player's dragons and apprentices to his altar.
+def summon (order : str , board : list):
+    """ This function receives the order to summon the player's dragons and apprentices to his altar.
 
     Parameters : 
     ------------
@@ -164,11 +164,12 @@ def summon (order : str , board : list): None
     ---------
     None : Summoning the player's dragon's and apprentices will be executed directly on the game board. 
 
-    """
+    """ 
 
 
-def check_valid_move (x : int, y : int): bool
-""" 
+
+def check_valid_move (x : int, y : int)->bool:
+    """ 
     This function checks if the move is valid or not. 
 
     Parameters : 
@@ -198,20 +199,54 @@ def egg_prep_time (egg: dict, apprentice_pos: list) -> bool:
     bool: True if the egg is ready to hatch and False if otherwise.
     """
 
-def egg_eclosion (board: list) -> None:
-
+def egg_eclosion (board: list) :
     """ 
-    This function hatches the dragon eggs that have completed their preparation time. Therefore it removes the egg 
-    and replaces it by the dragon that belongs to it. 
+    This function allows the eggs to hatch and the dragons to appear on the board.
 
     Parameters:
     -----------
-
-    board (list): The game board 
+    board (list): The game board with all it's components. 
 
     Returns:
     --------
-    None : This action will take place directly on the game board.
+    None: The hatching of the eggs will be executed directly on the game board.
     """
 
 
+def game_is_over (board: list, dragons: list) -> bool:
+    
+    """ 
+    This function checks if the game is over or not. 
+
+    Parameters:
+    -----------
+    board (list): The game board 
+    dragons (list): The list of the dragons informations.
+
+    Returns:
+    --------
+    bool: True if the game is over, False otherwise.
+    """
+    
+def check_winner (board: list) -> str:
+    
+    
+    """ 
+    This function checks the winner of the game. 
+
+    Parameters:
+    -----------
+    board (list): The list of the board informations.
+
+    Returns:
+    --------
+    str: The name of the winner.
+    """
+
+
+    
+    
+    
+    
+    
+    
