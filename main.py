@@ -6,14 +6,18 @@ from colored import fg, bg, attr
 term = Terminal()
 
 def read_file(file_name: str) -> dict:
-    """ read file type .drk and return a dictionary of data ( map, altars, apprentices, eggs)
     
-    parameters:
-        file_name (str): the name of the file to read 
+    """ This function reads the file type .drk and returns a dictionary containing the data ( map, altars, apprentices, eggs).
     
-    returns:
-        dict: a dictionary containing the data of the file (map, altars, apprentices, eggs)
+        Parameters:
+        -----------
+         file_name (str): the name of the file to read. 
+    
+        returns:
+        --------
+         data (dict): a dictionary containing the various data of the file (map, altars, apprentices, eggs)
     """
+
     
     data = {
         "map": None,
@@ -53,7 +57,7 @@ def read_file(file_name: str) -> dict:
                     x = int(parties[1])
                     y = int(parties[2])
                     
-                    # Vérification des conflits
+                    
                     if (x, y) in positions["altars"]:
                         errors.append(f"❌ Erreur: altar du joueur {id_joueur} en conflit avec un autre altar à ({x}, {y})")
                     if (x, y) in positions["apprentices"]:
@@ -124,31 +128,35 @@ def read_file(file_name: str) -> dict:
 
     return data
 
-def init_plateau(data):
-    """initilze the board with the data read from the file
+def init_board(data):
+
+    """ This function initializes the board with the data read from the file.drk.
     
 
-    Args:
-        data (dict): a dictionary containing the data of the file (map, altars, apprentices, eggs)
+        Parameters : 
+        ------------
+         data (dict): a dictionary containing the data of the file (map, altars, apprentices, eggs)
 
-    Returns:
-        list: a list of lists representing the board
+        Returns:
+        --------
+         list: a list of lists representing the board
     """
+
     largeur,hauteur = data["map"]
 
-    # Créer le plateau vide
-    plateau = []
+    # Créer le board vide
+    board = []
     
     for i in range(hauteur):
         ligne = []
         for j in range(largeur):
             ligne.append([]) # chaque case de plateu est un list (car on peut trouver deux element sur la meme case :) ) 
-        plateau.append(ligne)
+        board.append(ligne)
 
     # Placer les altars
     for joueur, (x, y) in data["altars"].items():
         if 1 <= x <= hauteur and 1 <= y <= largeur:  # Vérifier les coordonnées
-            plateau[x-1][y-1].append({
+            board[x-1][y-1].append({
                 "type" : "altar",
                 "player" :joueur 
             })
@@ -160,7 +168,7 @@ def init_plateau(data):
         for apprentice in apprentices:
             x, y = apprentice["position"]
             if 1 <= x <= hauteur and 1 <= y <= largeur:  # Vérifier les coordonnées
-                plateau[x-1][y-1].append({
+                board[x-1][y-1].append({
                     "type" : "apprenti" ,
                     "nom": apprentice["nom"],
                     "joueur": joueur,
@@ -173,7 +181,7 @@ def init_plateau(data):
     # Placer les œufs
     for (x, y), egg in data["eggs"].items():
         if 1 <= x <= hauteur and 1 <= y <= largeur:  # Vérifier les coordonnées
-            plateau[x-1][y-1].append({
+            board[x-1][y-1].append({
                 "type" : "egg" ,
                 "nom": egg["nom"],
                 "tours": egg["tours"],
@@ -185,25 +193,27 @@ def init_plateau(data):
         else:
             print(f"❌ Erreur: Coordonnées invalides pour l'œuf {egg['nom']} : ({x}, {y})")
 
-    return plateau
+    return board
  
 
-def afficher_plateau(plateau):
+def display_board(board):
     """
-    Affiche le plateau de jeu dans le terminal avec des emojis et des couleurs.
-    Cette version est conçue pour être facile à comprendre pour des étudiants.
+    This functions allows us to print the board in the terminal with UTF-8 emojis and colors.
 
     Parameters:
-        plateau (list): Une liste de listes représentant le plateau de jeu.
-                       Chaque case du plateau est une liste de dictionnaires décrivant les éléments présents.
+    ----------
+        board (list): a list of lists representing the board game.
+        Each game board square is a list of dictionaries that could contain one or more elements of the game in the board. 
+        
     """
+
     # 1. Effacer l'écran pour un affichage propre
     print(term.clear)
 
-    # 2. Parcourir chaque ligne du plateau
-    for i in range(len(plateau)):  # i est l'indice de la ligne
+    # 2. Parcourir chaque ligne du board
+    for i in range(len(board)):  # i est l'indice de la ligne
         # 3. Parcourir chaque case de la ligne
-        for j in range(len(plateau[i])):  # j est l'indice de la colonne
+        for j in range(len(board[i])):  # j est l'indice de la colonne
             # 4. Déplacer le curseur à la position (j * 2, i)
             # Cela permet d'afficher les éléments au bon endroit dans le terminal.
             print(term.move_xy(j * 2, i), end="")
@@ -211,7 +221,7 @@ def afficher_plateau(plateau):
             # 5. Vérifier ce qui se trouve dans la case et l'afficher
             # On parcourt manuellement les éléments de la case pour déterminer ce qui doit être affiché.
             afficher_element = "."  # Par défaut, la case est vide
-            case = plateau[i][j]  # Récupérer la case actuelle
+            case = board[i][j]  # Récupérer la case actuelle
             for element in case:
                 if element["type"] == "altar":
                     afficher_element = term.bold_red("🏰")  # altar en rouge
@@ -226,25 +236,25 @@ def afficher_plateau(plateau):
             # 6. Afficher l'élément de la case avec un espace pour la lisibilité
             print(afficher_element, end=" ")
 
-        # 7. Passer à la ligne suivante après avoir affiché une ligne du plateau
+        # 7. Passer à la ligne suivante après avoir affiché une ligne du board
         print()
 
     # 8. Afficher une légende pour expliquer les symboles
-    print(term.move_xy(0, len(plateau) + 1))  # Déplacer le curseur en bas du plateau
+    print(term.move_xy(0, len(board) + 1))  # Déplacer le curseur en bas du board
     print(term.bold("Légende :"))  # Titre de la légende en gras
     print(term.red("🏰 = altar"), term.blue("🧙 = Apprentis"), term.yellow("🥚 = Œufs"), term.green("🐉 = Dragons"))
 
 def main():
     # Lire les données du fichier
-    data = read_file("plateau.drk")
+    data = read_file("board.drk")
     if data is None:
         return
 
-    # init le plateau
-    plateau = init_plateau(data)
+    # init le board
+    board = init_board(data)
 
-    # Afficher le plateau
-    afficher_plateau(plateau)
+    # Afficher le board
+    display_board(board)
 
 if __name__ == "__main__":
     main()
