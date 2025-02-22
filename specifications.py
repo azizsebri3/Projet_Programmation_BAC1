@@ -12,25 +12,76 @@ def read_file(file_name: str) -> dict:
          data (dict): a dictionary containing the various data of the file (map, altars, apprentices, eggs)
     """
 
-def init_board(data):
-
-    """ 
-        This function initializes the board with the data read from the file.drk.
+def check_position(x : int, y: int, dict : list, errors):
+    """ This function checks if the position is valid or not. 
     
-
-        Parameters : 
-        ------------
-         data (dict): a dictionary containing the data of the file (map, altars, apprentices, eggs)
-
+        Parameters:
+        -----------
+         x (int): the x coordinate of the position to check.
+         y (int): the y coordinate of the position to check.
+         dict (list): a dictionary that contains all the positions of the elements on the board.
+         errors (list): a list that contains all the errors detected during the reading of the file.
+    
         Returns:
         --------
-         list: a list of lists representing the board
+         None
+    """
+    
+def init_board(data):
+    """ 
+    initalizes the board with the data read from the file.drk.
+
+    Parameters:
+    ------------
+    data (dict): a dictionary containing the data of the file (map, altars, apprentices, eggs)
+
+    Returns:
+    --------
+    list: a list of lists representing the board
+    """
+
+def place_apprentices(data):
+    """ 
+    This function initializes the apprentices on the board.
+
+    Parameters:
+    -----------
+    data (dict): a dictionary containing the data of the file (map, altars, apprentices, eggs)
+
+    Returns:
+    --------
+    dict: a dictionary containing the apprentices informations.
+    """
+
+def place_altars(data):
+    """ 
+    This function initializes the altars on the board.
+
+    Parameters:
+    -----------
+    data (dict): a dictionary containing the data of the file (map, altars, apprentices, eggs)
+
+    Returns:
+    --------
+    dict: a dictionary containing the altars informations.
+    """
+
+def place_eggs(data):
+    """ 
+    This function initializes the eggs on the board.
+
+    Parameters:
+    -----------
+    data (dict): a dictionary containing the data of the file (map, altars, apprentices, eggs)
+
+    Returns:
+    --------
+    dict: a dictionary containing the eggs informations.
     """
 
 
 
-
-def afficher_board(board):
+def display_board(board):
     """
     This functions allows us to print the board in the terminal with UTF-8 emojis and colors.
 
@@ -57,6 +108,19 @@ def tri_orders (orders : str): list
 
     """
 
+def move (order : str , board : list): None
+"""
+    This function receives the order to move and allows the dragon to move on the board.
+    
+    Parameters :
+    ------------
+    order (str): the order received by the player to move (dragon_name:x(direction))
+    
+    Returns :
+    ---------
+    None :
+    The movement will be executed directly on the game board.
+    """
 
 
 def attack (order : str , board :list): None 
@@ -73,8 +137,7 @@ def attack (order : str , board :list): None
 
     """
 
-def magic_bond (board: list, apprentices: dict, dragons: list) : None 
-
+def magic_bond (board: list, apprentices: dict, dragons: list): None
 """ 
     This function sets the magical bond between the apprentices and their dragons according to the eggs they have hatched.
 
@@ -91,7 +154,6 @@ def magic_bond (board: list, apprentices: dict, dragons: list) : None
 
 
 def summon (order : str , board : list): None 
-
 """ This function receives the order to summon the player's dragons and apprentices to his altar.
 
     Parameters : 
@@ -151,4 +213,5 @@ def egg_eclosion (board: list) -> None:
     --------
     None : This action will take place directly on the game board.
     """
+
 
