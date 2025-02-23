@@ -1,4 +1,4 @@
-def read_file(file_name: str) -> dict:
+def read_file(file_name: str) -> dict[dict]:
 
     """ 
         This function reads the file type .drk and returns a dictionary containing the data ( map, altars, apprentices, eggs).
@@ -10,6 +10,10 @@ def read_file(file_name: str) -> dict:
         returns:
         --------
          data (dict): a dictionary containing the various data of the file (map, altars, apprentices, eggs)
+         
+         version
+         --------
+         sepecifications : Mohamed Aziz Sebri (v1 21/02/2025)
     """
 
 def check_position(x : int, y: int, dict : list, errors):
@@ -24,10 +28,14 @@ def check_position(x : int, y: int, dict : list, errors):
     
         Returns:
         --------
-         None
+         None : The function will return directly the errors list.
+        
+        version
+        --------
+        sepecifications : Mohamed Aziz Sebri (v1 21/02/2025)
     """
     
-def init_board(data):
+def init_board(data) -> list:
     """ 
     initalizes the board with the data read from the file.drk.
 
@@ -50,7 +58,7 @@ def place_apprentices(data):
 
     Returns:
     --------
-    dict: a dictionary containing the apprentices informations.
+   None : The altars will be placed directly on the game board.
     """
 
 def place_altars(data):
@@ -63,7 +71,7 @@ def place_altars(data):
 
     Returns:
     --------
-    dict: a dictionary containing the altars informations.
+    None : The altars will be placed directly on the game board.
     """
 
 def place_eggs(data):
@@ -76,10 +84,8 @@ def place_eggs(data):
 
     Returns:
     --------
-    dict: a dictionary containing the eggs informations.
+    None : The altars will be placed directly on the game board.
     """
-
-
 
 def display_board(board):
     """
@@ -88,23 +94,21 @@ def display_board(board):
     Parameters:
     ----------
         board (list): a list of lists representing the board game.
-        Each game board square is a list of dictionaries that could contain one or more elements of the game in the board. 
+    
         
     """
 
-
-
-
-def tri_orders (orders : str) -> list:
-    """ 
-    This function will allow us to sort out the different instructions received by the player. 
+def tri_orders (orders : str) -> list[dict]:
+     """ 
+      This function will allow us to sort out the different instructions received by the player. 
+    
     Parameters : 
     ------------
     orders (str): the orders received by the player 
 
     Returns : 
     ---------
-    instruction (list) : a list of the instructions by order 
+    orders_tri (list[dict]) : a list of the instructions by order 
 
     """
 
@@ -118,10 +122,8 @@ def move (order : str , board : list):
     
     Returns :
     ---------
-    None :
-    The movement will be executed directly on the game board.
+    None 
     """
-
 
 def attack (order : str , board :list):
     """ 
@@ -133,7 +135,7 @@ def attack (order : str , board :list):
 
     Returns : 
     ---------
-    None : The attack will be executed directly on the game board.
+    None
 
     """
 
@@ -149,7 +151,7 @@ def magic_bond (board: list, apprentices: dict, dragons: list):
 
     Returns:
     --------
-    None : This action will take place during the game directly on the game board. 
+    None 
     """
 
 
@@ -162,7 +164,7 @@ def summon (order : str , board : list):
 
     Returns : 
     ---------
-    None : Summoning the player's dragon's and apprentices will be executed directly on the game board. 
+    None 
 
     """ 
 
@@ -213,8 +215,7 @@ def egg_eclosion (board: list) :
 
 
 def game_is_over (board: list, dragons: list) -> bool:
-    
-    """ 
+      """ 
     This function checks if the game is over or not. 
 
     Parameters:
@@ -228,8 +229,7 @@ def game_is_over (board: list, dragons: list) -> bool:
     """
     
 def check_winner (board: list) -> str:
-    
-    
+      
     """ 
     This function checks the winner of the game. 
 
