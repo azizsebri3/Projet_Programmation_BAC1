@@ -139,7 +139,7 @@ def check_position(x : int, y: int, dict : list, errors : list):
     else:
         errors.append(f"❌ Position déjà occupée par un œuf : ({x}, {y})")
 
-def init_board(data):
+def create_board(file_name: str) -> list:
     """ 
     initalizes the board with the data read from the file.drk.
 
@@ -151,6 +151,7 @@ def init_board(data):
     --------
     list: a list of lists representing the board
     """
+    data = read_file(file_name)
     largeur = data["map"][0]
     hauteur = data["map"][1]
 
@@ -166,7 +167,7 @@ def init_board(data):
     place_apprentices(board, data)
     place_eggs(board, data)
 
-    return board
+    return board , data
 
 
 def place_altars(board, data):
@@ -286,17 +287,27 @@ def display_board(board):
     print(term.red("🏰 = altar"), term.blue("🧙 = Apprentis"), term.yellow("🥚 = Œufs"), term.green("🐉 = Dragons"))
     
 
-def tri_orders (orders : str) -> list[dict]:
+def get_orders() -> list[dict]:
     """ This function will allow us to sort out the different instructions received by the player. 
 
     Parameters : 
     ------------
-    orders (str): the orders received by the player 
+    None
 
     Returns : 
     ---------
     orders_tri (list) : a list of the instructions by order
 """
+    #je veux afficher au  joueur la maniere de input si il veut mover ou attaquer ou avtiver le summon 
+    
+    print("Veuillez entrer les ordres sous la forme suivante :")
+    print("1. Pour déplacer un apprenti : nom_apprenti:@ligne-colonne")
+    print("2. Pour attaquer avec un dragon : nom_dragon:xdirection")
+    print("3. Pour activer le summon : summon")
+    print("entrer les ordres séparés par un espace")
+    print("Exemple : Lea:@10-11 kraar:@12-13 Lea:xN kraar:xSL summon")
+    print("Les directions valides sont : N, NE, E, SE, S, SW, W, NW")
+    orders = input("entrez vous orders :   ")
     orders = orders.split(" ") # ----->   #[klara@:1-2,ahmed@:3-4,simonx:xN]
     orders_tri = []
     
@@ -344,21 +355,22 @@ def tri_orders (orders : str) -> list[dict]:
     
 
     
-def move(data : dict, order : str): 
+def apply_order(data : dict, order : list[dict]): 
     """ This function receives the order to move the player's dragons and apprentices to the desired position. 
 
     Parameters :
     ------------
-    order (str): the order received by the player to move
+    order (list[dict]): the order received by the player to be applied on the board.
     
     Returns :
     ---------
     None 
 
     """
-    orders_tri = tri_orders(order)
+    
     if order["type"] == "move":
         move_element(data , order["name"], order["row"], order["col"])
+    
     elif order["type"] == "attack":
         attack(order["name"], order["direction"])
         
@@ -367,9 +379,11 @@ def move(data : dict, order : str):
         
     else:
         print(f" Erreur: Instruction invalide : {order}")
+    
+    
 
-def move_element(data : dict , name : str, row : int, col : int):
-    """ This function receives the order to move and allows the dragon to move on the board.
+def move_element(board : list[dict] , name : str, row : int, col : int):
+    """ This function receives the order to move and allows the dragon or the apprentice to move on the board.
 
     Parameters :
     ------------
@@ -425,9 +439,7 @@ def summon (data):
     """
 
 
-def regenerate(board):
-    
-
+def regenerate(data : dict):
     """ This function allows the dragons and the apprentices to regenerate their health points.
 
     Parameters : 
@@ -439,3 +451,79 @@ def regenerate(board):
     None 
 
     """
+
+    
+
+def check_game_over(data : dict) -> bool:
+    """ This function checks if the game is over or not.
+    
+    Parameters:
+    
+    -----------
+    data (dict): The data of the game.
+    
+    Returns:
+    --------
+    bool: True if the game is over, False otherwise.
+    """
+    nombre_apprenti_joueur1 = len(data["apprentices"][1])
+    nombre_apprenti_joueur2 = len(data["apprentices"][2])
+    
+    if nombre_apprenti_joueur1 == 0 or nombre_apprenti_joueur2 == 0:
+        return True
+    
+    elif data["tours_sans_damage"] <= 100:
+        return True
+
+def check_winner(data : dict) -> int:
+    """ This function checks the winner of the game. 
+
+    Parameters : 
+    ------------
+    data (dict): The data of the game. 
+
+    Returns : 
+    ---------
+    int : the number of the winner player 
+    """
+    nombre_apprenti_joueur1 = len(data["apprentices"][1])
+    nombre_apprenti_joueur2 = len(data["apprentices"][2])
+    
+    if nombre_apprenti_joueur1 == 0:
+        return 2
+    else:
+        return 1
+    
+    elif data["turns_without_damage"] <= 100:
+
+
+def play_game(file_name : str):
+    """ This function allows us to play the game. 
+
+    Parameters : 
+    ------------
+    file_name (str): the name of the file to read. 
+
+    Returns : 
+    ---------
+    None 
+    """
+    board ,data = create_board(file_name)
+    
+    display_board(board)
+    
+    while not check_game_over(data):
+        orders = get_orders()
+        apply_order(data, orders)
+        regenerate(data)
+        display_board(board)
+        
+    print("Game Over !")
+    
+    print(f"Le joueur {check_winner(data)} a gagné la partie !")
+    
+    
+
+#i gonna run the game
+
+play_game("plateau.drk")
