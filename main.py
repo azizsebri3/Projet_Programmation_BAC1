@@ -24,7 +24,8 @@ def read_file(file_name: str) -> dict:
         "map": None,
         "altars": {},
         "apprentices": {},
-        "eggs": {}
+        "eggs": {} ,
+        "tours_sans_damage" : 0
     }
     
     
@@ -114,7 +115,7 @@ def read_file(file_name: str) -> dict:
 
     return data
 
-def check_position(x : int, y: int, dict : list, errors):
+def check_position(x : int, y: int, dict : list, errors : list):
     """ This function checks if the position is valid or not. 
     
         Parameters:
@@ -184,7 +185,7 @@ def place_altars(board, data):
                 "player": joueur
             })
         else:
-            print(f"❌ Erreur: Coordonnées invalides pour l'altar du joueur {joueur} : ({x}, {y})")
+            print(f"Erreur: Coordonnées invalides pour l'altar du joueur {joueur} : ({x}, {y})")
 
 
 def place_apprentices(board, data):
@@ -245,6 +246,7 @@ def display_board(board):
         Each game board square is a list of dictionaries that could contain one or more elements of the game in the board. 
         
     """
+    
 
     # 1. Effacer l'écran pour un affichage propre
     print(term.clear)
@@ -282,10 +284,9 @@ def display_board(board):
     print(term.move_xy(0, len(board) + 1))  # Déplacer le curseur en bas du board
     print(term.bold("Légende :"))  # Titre de la légende en gras
     print(term.red("🏰 = altar"), term.blue("🧙 = Apprentis"), term.yellow("🥚 = Œufs"), term.green("🐉 = Dragons"))
+    
 
-
-
-def tri_orders (orders : str) -> list:
+def tri_orders (orders : str) -> list[dict]:
     """ This function will allow us to sort out the different instructions received by the player. 
 
     Parameters : 
@@ -296,7 +297,7 @@ def tri_orders (orders : str) -> list:
     ---------
     orders_tri (list) : a list of the instructions by order
 """
-    orders = orders.split(" ")
+    orders = orders.split(" ") # ----->   #[klara@:1-2,ahmed@:3-4,simonx:xN]
     orders_tri = []
     
     for order in orders:
@@ -343,9 +344,7 @@ def tri_orders (orders : str) -> list:
     
 
     
-    
-    
-def move (order : str):
+def move(data : dict, order : str): 
     """ This function receives the order to move the player's dragons and apprentices to the desired position. 
 
     Parameters :
@@ -357,10 +356,34 @@ def move (order : str):
     None 
 
     """
-    
+    orders_tri = tri_orders(order)
+    if order["type"] == "move":
+        move_element(data , order["name"], order["row"], order["col"])
+    elif order["type"] == "attack":
+        attack(order["name"], order["direction"])
+        
+    elif order["type"] == "summon":
+        summon(data)
+        
+    else:
+        print(f" Erreur: Instruction invalide : {order}")
+
+def move_element(data : dict , name : str, row : int, col : int):
+    """ This function receives the order to move and allows the dragon to move on the board.
+
+    Parameters :
+    ------------
+    name (str): the name of the dragon that will move
+    row (int): the row of the move
+    col (int): the column of the move
+
+    Returns :
+    ---------
+    None 
+    """
 
 
-def check_valid_move (x : int, y : int) -> bool:
+def check_valid_move(x : int, y : int) -> bool:
     """ This function checks if the move is valid or not. 
 
     Parameters : 
@@ -373,12 +396,13 @@ def check_valid_move (x : int, y : int) -> bool:
     bool : True if the move is valid, False otherwise
     """
 
-def attack (order : str):
+def attack (data : dict , name : str, direction : str):
     """ This function receives the order to attack and allows the dragon to attack the other dragons or the apprentices within his range. 
 
     Parameters : 
     ------------
-    order (str): the order received by the player to attack 
+    name (str): the name of the dragon that will attack
+    direction (str): the direction in which the dragon will attack
 
     Returns : 
     ---------
