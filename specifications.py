@@ -16,7 +16,7 @@ def read_file(file_name: str) -> dict:
          sepecifications : Mohamed Aziz Sebri (v1 21/02/2025)
     """
 
-def check_position(x : int, y: int, dict : list, errors):
+def check_position(x : int, y: int, positions : dict, errors: list) -> None:
     """ This function checks if the position is valid or not. 
     
         Parameters:
@@ -35,13 +35,13 @@ def check_position(x : int, y: int, dict : list, errors):
         sepecifications : Mohamed Aziz Sebri (v1 21/02/2025)
     """
     
-def init_board(data) -> list:
+def create_board(file_name:str) -> list:
     """ 
     initalizes the board with the data read from the file.drk.
 
     Parameters:
     ------------
-    data (dict): a dictionary containing the data of the file (map, altars, apprentices, eggs)
+    file_name (str): the name of the file
 
     Returns:
     --------
@@ -52,8 +52,7 @@ def init_board(data) -> list:
     sepecifications : Mohamed Aziz Sebri (v1 21/02/2025)
     """
     
-
-def place_apprentices(data):
+def place_apprentices(data:dict):
     """ 
     This function initializes the apprentices on the board.
 
@@ -71,7 +70,7 @@ def place_apprentices(data):
     
     """
 
-def place_altars(data):
+def place_altars(data : dict):
     """ 
     This function initializes the altars on the board.
 
@@ -89,7 +88,7 @@ def place_altars(data):
     
     """
 
-def place_eggs(data):
+def place_eggs(data : dict):
     """ 
     This function initializes the eggs on the board.
 
@@ -106,7 +105,7 @@ def place_eggs(data):
     sepecifications : Mohamed Aziz Sebri (v1 21/02/2025)
     """
 
-def display_board(board):
+def display_board(board :list[list]):
     """
     This functions allows us to print the board in the terminal with UTF-8 emojis and colors.
 
@@ -125,17 +124,20 @@ def display_board(board):
         
     """
 
-def tri_orders (orders : str) -> list[dict]:
+def get_orders(data : list[dict] , board: list[list], current_player: int, errors: list) -> list[dict]:
      """ 
       This function will allow us to sort out the different instructions received by the player. 
     
     Parameters : 
     ------------
-    orders (str): the orders received by the player 
-
+    data : list[dict] : a list of the instructions received by the player
+    board : list[list] : the game board with all it's elements
+    current_player : int : the current player
+    errors : list : a list that contains all the errors detected during the reading of the file
+    
     Returns : 
     ---------
-    orders_tri (list[dict]) : a list of the instructions by order 
+    orders_sorted (list[dict]) : a list of the instructions by order 
     
     version
     --------
@@ -143,13 +145,14 @@ def tri_orders (orders : str) -> list[dict]:
 
     """
 
-def move(data: dict , order : str , board : list):
+def apply_order(board: list[list] , order : list[dict]):
     """
     This function receives the order to move and allows the dragon to move on the board.
     
     Parameters :
     ------------
-    order (str): the order received by the player to move (dragon_name:x(direction))
+    board (list[list]): the game board with all it's elements.
+    order (str): the order received by the player to move his dragon.
     
     Returns :
     ---------
@@ -157,10 +160,10 @@ def move(data: dict , order : str , board : list):
     
     version
     --------
-    sepecifications : Hiba Bargi (v1 21/02/2025)
+    sepecifications : Mohamed Aziz Sebri (v1 23/02/2025)
     """
 
-def move_element(data: dict, element : str, direction : str):
+def move(data: dict, element : str, direction : str):
     """ 
     This function allows us to move the element in the direction given by the player. 
     
@@ -175,8 +178,28 @@ def move_element(data: dict, element : str, direction : str):
     sepecifications : Hiba bargi (v1 21/02/2025)
     
     """
+def check_propre_apprenti(data : dict, current_player : int, name : str) -> bool:
+    """ This function checks if the player has the apprentice he wants to move. 
 
-def attack (data :dict , order : str , board :list):
+    Parameters : 
+    ------------
+    data (dict): the data of the game. 
+    current_player (int): the current player. 
+    name (str): the name of the apprentice to check. 
+
+    Returns : 
+    ---------
+    bool : True if the player has the apprentice, False otherwise. 
+    
+    version
+    --------
+    sepecifications : Mohamed Aziz Sebri (v1 21/02/2025)
+    """
+    
+    
+    
+
+def attack(data :dict , order : str , board :list):
     """ 
     This function receives the order to attack and allows the dragon to attack the other dragons or the apprentices within his range. 
     
@@ -193,15 +216,14 @@ def attack (data :dict , order : str , board :list):
     sepecifications : Ahmed feki (v1 21/02/2025)
     """
 
-def magic_bond (board: list, apprentices: dict, dragons: list):
+def magic_bond(board: list,data: dict):
     """ 
     This function sets the magical bond between the apprentices and their dragons according to the eggs they have hatched.
 
     Parameters:
     -----------
     board (list): The game board with all it's components. 
-    apprentices (dict): a dictionary that contains the apprentices infromations.
-    dragons (list): a list of the dragons informations. 
+    data (dict): The data of the game.
 
     Returns:
     --------
@@ -212,8 +234,7 @@ def magic_bond (board: list, apprentices: dict, dragons: list):
     sepecifications : Hiba bargi (v1 21/02/2025)
     """
 
-
-def summon (order : str , board : list):
+def summon(order : str , board : list):
     """ This function receives the order to summon the player's dragons and apprentices to his altar.
 
     Parameters : 
@@ -229,7 +250,6 @@ def summon (order : str , board : list):
     sepecifications : Hiba bargi (v1 21/02/2025)
 
     """ 
-
 
 def check_valid_move (x : int, y : int)->bool:
     """ 
@@ -249,8 +269,7 @@ def check_valid_move (x : int, y : int)->bool:
     sepecifications : Aziz Slimi (v1 21/02/2025)
     """
 
-
-def egg_prep_time (egg: dict, apprentice_pos: list) -> bool:
+def egg_prep_time(egg: dict, apprentice_pos: list) -> bool:
       """ 
     This function checks if there is an apprentice that is with the egg on the same game board case 
     and reduces the hatching time by 1 game tour.
@@ -266,10 +285,10 @@ def egg_prep_time (egg: dict, apprentice_pos: list) -> bool:
     
     version
     --------
-    sepecifications : Aziz Slimi (v1 21/02/2025)
+    sepecifications : Hiba bargi (v1 21/02/2025)
     """
 
-def egg_eclosion (board: list) :
+def egg_eclosion(board: list[list]) :
     """ 
     This function allows the eggs to hatch and the dragons to appear on the board.
 
@@ -286,8 +305,24 @@ def egg_eclosion (board: list) :
     sepecifications : Aziz Slimi (v1 21/02/2025)
     """
 
+def regenerate(data: dict):
+    """ 
+    This function allows the dragons and appprentices to regenerate their health point (point de vie) .
 
-def game_is_over (board: list, dragons: list) -> bool:
+    Parameters:
+    -----------
+    data (list): the data of the game.(and here i need just the apprenctices and dragons informations)
+
+    Returns:
+    --------
+    None: The dragons will regenerate their health points directly.
+    
+    version
+    --------
+    sepecifications : Aziz Slimi (v1 21/02/2025)
+    """
+
+def game_is_over(board: list[list], data : dict) -> bool:
       """ 
     This function checks if the game is over or not. 
 
@@ -305,14 +340,14 @@ def game_is_over (board: list, dragons: list) -> bool:
     sepecifications : Ahmed Feki (v1 21/02/2025)
     """
     
-def check_winner (board: list) -> str:
+def check_winner(data: dict) -> str:
       
     """ 
     This function checks the winner of the game. 
 
     Parameters:
     -----------
-    board (list): The list of the board informations.
+    data (dict): the informations of the game.
 
     Returns:
     --------
@@ -320,11 +355,10 @@ def check_winner (board: list) -> str:
     
     version
     --------
-    sepecifications : Mohamed Aziz Sebri (v1 21/02/2025)
+    sepecifications : Mohamed Aziz Sebri (v1 20/02/2025)
     """
 
-
-def count_dragons (board : list[list] , id_joueur : int) -> int:
+def count_dragons(board : list[list] , id_joueur : int) -> int:
     """ 
     This function counts the number of dragons on the board. 
 
@@ -341,8 +375,23 @@ def count_dragons (board : list[list] , id_joueur : int) -> int:
     --------
     sepecifications : Ahmed Feki (v1 21/02/2025)
     """
+
+def play_game(file_name: str):
+    """ 
+    This function allows us to play the game. 
+
+    Parameters:
+    -----------
+    file_name (str): The name of the file to read.
+
+    Returns:
+    --------
+    None: The game will be played directly.
     
-    
+    version
+    --------
+    sepecifications : Mohamed Aziz Sebri (v1 20/02/2025)
+    """
     
     
     

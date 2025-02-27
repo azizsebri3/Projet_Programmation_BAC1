@@ -1,4 +1,4 @@
-import random
+import time
 from blessed import Terminal
 from colored import fg, bg, attr
 
@@ -109,9 +109,7 @@ def read_file(file_name: str) -> dict:
     file.close()  # Fermer le fichier après lecture
 
     # Afficher toutes les erreurs si elles existent
-    if errors:
-        error_messages = "\n".join(errors)
-        raise ValueError(f" Erreurs détectées lors de la lecture du fichier:\n{error_messages}")
+    
 
     return data
 
@@ -131,13 +129,13 @@ def check_position(x : int, y: int, dict : list, errors : list):
     """
     
     if (x, y) in dict["altars"] :
-        errors.append(f"❌ Position déjà occupée par un altar : ({x}, {y})")
+        errors.append(f"Position déjà occupée par un altar : ({x}, {y})")
     
     elif (x,y) in dict["apprentices"] :
-        errors.append(f"❌ Position déjà occupée par un apprenti: ({x}, {y})")
+        errors.append(f"Position déjà occupée par un apprenti: ({x}, {y})")
     
     else:
-        errors.append(f"❌ Position déjà occupée par un œuf : ({x}, {y})")
+        errors.append(f"Position déjà occupée par un œuf : ({x}, {y})")
 
 def create_board(file_name: str) -> list:
     """ 
@@ -237,125 +235,244 @@ def place_eggs(board, data):
             print(f"❌ Erreur: Coordonnées invalides pour l'œuf {egg['nom']} : ({x}, {y})")
 
 
+
+
+def horizontal_line(largeur : int, left_char :str, mid_char:str, right_char:str) -> str:
+    """this function returns a horizontal line with the specified characters.
+
+    Args:
+        largeur (int): the width of the line.
+        left_char (str): the character to use for the left side.
+        mid_char (str): the middle character to use.
+        right_char (str): the character to use for the right side.
+
+    Returns:
+        line(str): the horizontal line.
+    """
+    line = left_char
+    for col in range(largeur - 1):
+        line += "═══" + mid_char
+    line += "═══" + right_char
+    return line
+
+def get_cell_content(cell):
+    """
+    Retourne le contenu à afficher dans la case (icône + couleur).
+    S'il y a plusieurs éléments dans la case, on affiche
+    celui qui a la priorité (ex: altar > apprenti > egg > dragon).
+    """
+    if not cell:
+        return " . "  # Case vide
+    
+    # On parcourt les éléments pour décider lequel afficher
+    content = " . "
+    for element in cell:
+        if element["type"] == "altar":
+            # On met un break pour prioriser l'autel s'il est présent
+            return term.bold_red("🏰 ")
+        elif element["type"] == "apprenti":
+            # On remplace le contenu, mais on ne break pas (au cas où un autel apparaît après ?)
+            content = term.bold_blue("🧙 ")
+        elif element["type"] == "egg":
+            # On remplace le contenu, si pas d'apprenti ni d'autel
+            content = term.bold_yellow("🥚 ")
+        elif element["type"] == "dragon":
+            # On remplace le contenu, si pas d'autel/apprenti/oeuf
+            content = term.bold_green("🐉 ")
+    return content
+
 def display_board(board):
+    """show the board on the screen.
+    
+    parameters:
+    -----------
+        board (list): the board of the game.
+    
+    returns:
+    --------
+        None
+    
+    version : 1.0
+     sepecifications : Ahmed Feki (v1 21/02/2025)
+     implementation : Mohamed Aziz Sebri (v1 27/02/2025)
     """
-    This functions allows us to print the board in the terminal .
+    print(term.home + term.clear)  # Nettoyer l'écran, cacher le curseur
 
+    hauteur = len(board)
+    largeur = len(board[0]) if hauteur > 0 else 0
+
+    # Lignes de bordure (haut, séparateur intermédiaire, bas)
+    top_line    = horizontal_line(largeur, '╔', '╦', '╗')
+    mid_line    = horizontal_line(largeur, '╠', '╬', '╣')
+    bottom_line = horizontal_line(largeur, '╚', '╩', '╝')
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # 1) Affichage de la ligne supérieure
+    print(top_line)
+
+    # 2) Pour chaque rangée du board
+    for i in range(hauteur):
+        # Construire la ligne de contenu : ex: ║ . ║ 🏰 ║ 🧙 ║
+        row_str = ""
+        for j in range(largeur):
+            cell_content = get_cell_content(board[i][j])
+            row_str += "║" + cell_content
+        row_str += "║"  # Fin de la ligne
+        print(row_str)
+
+        time.sleep(0.01)  # Petite pause pour effet "dynamique"
+
+        # Après chaque rangée, si ce n'est pas la dernière, on affiche une ligne intermédiaire
+        if i < hauteur - 1:
+            print(mid_line)
+
+    # 3) Affichage de la ligne inférieure
+    print(bottom_line)
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # 4) Affichage de la légende
+    print()
+    print(term.bold("📜 Légende :"))
+    print(
+        term.red("🏰 = Autel  "),
+        term.blue("🧙 = Apprenti  "),
+        term.yellow("🥚 = Œuf  "),
+        term.green("🐉 = Dragon"),
+        sep="\n"
+    )
+    
+
+    # 5) Attente des ordres du joueur
+    print()
+    print("🎮 En attente des ordres du joueur... ", end="", flush=True)
+    time.sleep(0.5)
+    print(term.blink("⌛"))
+
+def get_orders(data: list[dict], board: list[list], current_player: int) -> list[dict]:
+    """ this function receives the orders from the player and returns a list of dictionaries containing the orders to be applied on the board.
+    
     Parameters:
-    ----------
-        board (list): a list of lists representing the board game.
-        Each game board square is a list of dictionaries that could contain one or more elements of the game in the board. 
-        
+    -----------
+    data (list[dict]): the data of the game.
+    board (list[list]): the board of the game.
+    current_player (int): the current player.
+    
+    Returns:
+    --------
+    list[dict]: a list of dictionaries containing the orders to be applied on the board.
+    
+    version : 1.0
+    specifiations : Mohamed aziz Sebri 
     """
     
+    orders = input(f"\n🎮 Tour du Joueur {current_player} : Entrez vos ordres :")
+    orders = orders.split(" ")  # Convertir en liste
+    orders_sorted = []
+    player_has_errors = False  # Variable pour vérifier les erreurs
 
-    # 1. Effacer l'écran pour un affichage propre
-    print(term.clear)
+    # Vérifier si "summon" est en premier
+    if "summon" in orders:
+        if orders[0] != "summon":
+            player_has_errors = True
 
-    # 2. Parcourir chaque ligne du board
-    for i in range(len(board)):  # i est l'indice de la ligne
-        # 3. Parcourir chaque case de la ligne
-        for j in range(len(board[i])):  # j est l'indice de la colonne
-            # 4. Déplacer le curseur à la position (j * 2, i)
-            # Cela permet d'afficher les éléments au bon endroit dans le terminal.
-            print(term.move_xy(j * 2, i), end="")
+    # Vérifier si ":@" vient après ":x" (mauvais ordre)
+    index_at = -1
+    index_x = -1
 
-            # 5. Vérifier ce qui se trouve dans la case et l'afficher
-            # On parcourt manuellement les éléments de la case pour déterminer ce qui doit être affiché.
-            afficher_element = "."  # Par défaut, la case est vide
-            case = board[i][j]  # Récupérer la case actuelle
-            for element in case:
-                if element["type"] == "altar":
-                    afficher_element = term.bold_red("🏰")  # altar en rouge
-                    break  # On affiche l'altar en priorité
-                elif element["type"] == "apprenti":
-                    afficher_element = term.bold_blue("🧙")  # Apprenti en bleu
-                elif element["type"] == "egg":
-                    afficher_element = term.bold_yellow("🥚")  # Œuf en jaune
-                elif element["type"] == "dragon":
-                    afficher_element = term.bold_green("🐉")  # Dragon en vert
+    for i in range(len(orders)):
+        if ":@" in orders[i]:
+            index_at = i
+        if ":x" in orders[i]:
+            index_x = i
 
-            # 6. Afficher l'élément de la case avec un espace pour la lisibilité
-            print(afficher_element, end=" ")
+    if index_at != -1 and index_x != -1 and index_at < index_x:
+        player_has_errors = True
 
-        # 7. Passer à la ligne suivante après avoir affiché une ligne du board
-        print()
-
-    # 8. Afficher une légende pour expliquer les symboles
-    print(term.move_xy(0, len(board) + 1))  # Déplacer le curseur en bas du board
-    print(term.bold("Légende :"))  # Titre de la légende en gras
-    print(term.red("🏰 = altar"), term.blue("🧙 = Apprentis"), term.yellow("🥚 = Œufs"), term.green("🐉 = Dragons"))
-    
-
-def get_orders() -> list[dict]:
-    """ This function will allow us to sort out the different instructions received by the player. 
-
-    Parameters : 
-    ------------
-    None
-
-    Returns : 
-    ---------
-    orders_tri (list) : a list of the instructions by order
-"""
-    #je veux afficher au  joueur la maniere de input si il veut mover ou attaquer ou avtiver le summon 
-    
-    print("Veuillez entrer les ordres sous la forme suivante :")
-    print("1. Pour déplacer un apprenti : nom_apprenti:@ligne-colonne")
-    print("2. Pour attaquer avec un dragon : nom_dragon:xdirection")
-    print("3. Pour activer le summon : summon")
-    print("entrer les ordres séparés par un espace")
-    print("Exemple : Lea:@10-11 kraar:@12-13 Lea:xN kraar:xSL summon")
-    print("Les directions valides sont : N, NE, E, SE, S, SW, W, NW")
-    orders = input("entrez vous orders :   ")
-    orders = orders.split(" ") # ----->   #[klara@:1-2,ahmed@:3-4,simonx:xN]
-    orders_tri = []
-    
+    # Parcourir chaque ordre pour l'analyser
     for order in orders:
         order = order.strip()
-        
+
+        # Ordre d'attaque "name:xDirection"
         if ":x" in order:
-            try : 
-                name , direction = order.split(":x")
-                directions_valides = {"N", "NE", "E", "SE", "S", "SW", "W" , "NW"}
+            parts = order.split(":x")
+            if len(parts) == 2:
+                name = parts[0]
+                direction = parts[1]
+                directions_valides = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
                 if direction in directions_valides:
-                    orders_tri.append({
+                    orders_sorted.append({
                         "type": "attack",
                         "name": name,
                         "direction": direction
                     })
                 else:
-                    print(f"Direction invalide pour l'attaque : {direction}")
-            
-            except ValueError:
-                print(f" Erreur: Attaque invalide : {order}")
-        
-        elif ":@" in order :
-            try : 
-                name , position = order.split(":@")
-                r, c = position.split("-")
-                orders_tri.append({
-                    "type": "move",
-                    "name": name,
-                    "row": int(r),
-                    "col": int(c)
-                })
-            except ValueError:
-                print(f" Erreur: Déplacement invalide : {order}")
-        elif order =="summon":
-            orders_tri.append({
-                "type": "summon"
-            })
-            
-        else:
-            print(f" Erreur: Ordre invalide ignoré : {order}")
-            
-    return orders_tri
+                    player_has_errors = True
+            else:
+                player_has_errors = True
+
+        # Ordre de déplacement "name:@row-col"
+        elif ":@" in order:
+            parts = order.split(":@")
+            if len(parts) == 2:
+                name = parts[0]
+                position = parts[1]
+
+                if check_propre_apprenti(data, current_player, name) == False:
+                    player_has_errors = True
+
+                # Vérifier si la position est valide (ex: "1-2")
+                if "-" in position:
+                    coords = position.split("-")
+                    if len(coords) == 2 and coords[0].isdigit() and coords[1].isdigit():
+                        row = int(coords[0]) - 1
+                        col = int(coords[1]) - 1
+                        if check_valid_move(board, name, row, col):
+                            orders_sorted.append({
+                                "type": "move",
+                                "name": name,
+                                "row": row,
+                                "col": col
+                            })
+                        else:
+                            player_has_errors = True
+                    else:
+                        player_has_errors = True
+                else:
+                    player_has_errors = True
+            else:
+                player_has_errors = True
+
+        # Ordre d'invocation "summon"
+        elif order == "summon":
+            orders_sorted.append({"type": "summon"})
+
+    # Si une erreur est détectée, on ignore le tour du joueur
+    if player_has_errors:
+        return None  
+
+    return orders_sorted
 
     
+def check_propre_apprenti(data : dict, current_player : int, name : str) -> bool:
+    """ This function checks if the player has the apprentice he wants to move. 
 
+    Parameters : 
+    ------------
+    data (dict): the data of the game. 
+    current_player (int): the current player. 
+    name (str): the name of the apprentice to check. 
+
+    Returns : 
+    ---------
+    bool : True if the player has the apprentice, False otherwise. 
+    """
     
-def apply_order(data : dict, order : list[dict]): 
+    for apprenti in data["apprentices"][current_player]:
+        if apprenti["nom"] == name:
+            return True
+    return False
+    
+def apply_order(board : dict, orders : list[dict] , data : list[list] , current_player : int): 
     """ This function receives the order to move the player's dragons and apprentices to the desired position. 
 
     Parameters :
@@ -368,47 +485,79 @@ def apply_order(data : dict, order : list[dict]):
 
     """
     
-    if order["type"] == "move":
-        move_element(data , order["name"], order["row"], order["col"])
-    
-    elif order["type"] == "attack":
-        attack(order["name"], order["direction"])
+    for order in orders : 
+        if order["type"] == "move":
+            move_element(board, order["name"], order["row"], order["col"])
+            print(f"{order['name']} a été déplacé à la position ({order['row']}, {order['col']})")
         
-    elif order["type"] == "summon":
-        summon(data)
+        elif order["type"] == "attack":
+            attack(board , order["name"], order["direction"])
+            print(f"{order['name']} a attaqué dans la direction {order['direction']}")
         
-    else:
-        print(f" Erreur: Instruction invalide : {order}")
+        elif order["type"] == "summon":
+            summon(board , data , current_player)
+            print("Le joueur a activé le summon !")
+        
+        else:
+            print(f" Erreur: Instruction invalide : {order}")
     
     
 
-def move_element(board : list[dict] , name : str, row : int, col : int):
-    """ This function receives the order to move and allows the dragon or the apprentice to move on the board.
+def move_element(board, name, row, col):
+    """ Déplace un apprenti ou un dragon sur le plateau. """
 
-    Parameters :
-    ------------
-    name (str): the name of the dragon that will move
-    row (int): the row of the move
-    col (int): the column of the move
+    for i in range(len(board)):
+        for j in range(len(board[i])):
+            case = board[i][j]
+            for element in case:
+                if element.get("nom") == name:
+                    # Effectuer le déplacement
+                    case.remove(element)
+                    board[row][col].append(element)  # Déplacer l'élément
+                    return  # Le déplacement est terminé
+    
 
-    Returns :
-    ---------
-    None 
+
+def check_valid_move(board: list[list], name: str, row: int, col: int) -> bool:
+    """Verify if the move is valid or not.
+
+    Args:
+        board (list[list]): the board of the game.
+        name (str): name of element to move.
+        row (int): the row to move to.
+        col (int): the column to move to.
+
+    Returns:
+        bool: True if the move is valid, False otherwise.
     """
 
+    # Vérifier si la position cible est dans les limites du plateau
+    if not (0 <= row < len(board) and 0 <= col < len(board[0])):
+        return False
 
-def check_valid_move(x : int, y : int) -> bool:
-    """ This function checks if the move is valid or not. 
+    # Trouver la position actuelle de l'élément
+    current_position = None
+    for r in range(len(board)):
+        for c in range(len(board[r])):
+            for element in board[r][c]:
+                if element.get("nom") == name:
+                    current_position = (r, c)
+    
 
-    Parameters : 
-    ------------
-    x (int): the x coordinate of the move 
-    y (int): the y coordinate of the move 
+    if current_position:
+        current_row, current_col = current_position
+        # Calculer la différence entre les positions actuelle et cible
+        row_diff = abs(current_row - row)
+        col_diff = abs(current_col - col)
 
-    Returns : 
-    ---------
-    bool : True if the move is valid, False otherwise
-    """
+        # Vérifier que le déplacement est d'une seule case dans l'une des huit directions adjacentes
+        if (row_diff == 1 and col_diff == 0) or (row_diff == 0 and col_diff == 1) or (row_diff == 1 and col_diff == 1):
+            return True
+
+    return False
+
+
+
 
 def attack (data : dict , name : str, direction : str):
     """ This function receives the order to attack and allows the dragon to attack the other dragons or the apprentices within his range. 
@@ -425,18 +574,23 @@ def attack (data : dict , name : str, direction : str):
     """
     
 
-def summon (data): 
-    """ This function receives the order to summon the player's dragons and apprentices to his altar.
+def summon(board, data, current_player):
+    """Cette fonction déplace les apprentis du joueur vers l'autel puis les ramène à leurs positions initiales."""
+    
+    # Parcourir chaque apprenti du joueur
+    for apprenti in data["apprentices"][current_player]:
+        # Récupérer la position initiale de l'apprenti
+        initial_position = apprenti["position"]  # position sous forme de (x, y)
+        initial_x, initial_y = initial_position
+        
+        # Chercher l'apprenti sur le plateau
+        for row in range(len(board)):
+            for col in range(len(board[row])):
+                for element in board[row][col]:
+                    if element.get("nom") == apprenti["nom"] and element.get("joueur") == current_player:
+                        move_element(board, apprenti["nom"], initial_x -1, initial_y-1)
+                        break
 
-    Parameters : 
-    ------------
-    data : a dictionnary that contains all the board informations. 
-
-    Returns : 
-    ---------
-    None 
-
-    """
 
 
 def regenerate(data : dict):
@@ -472,7 +626,7 @@ def check_game_over(data : dict) -> bool:
     if nombre_apprenti_joueur1 == 0 or nombre_apprenti_joueur2 == 0:
         return True
     
-    elif data["tours_sans_damage"] <= 100:
+    elif data["tours_sans_damage"] >= 100:
         return True
 
 def check_winner(data : dict) -> int:
@@ -491,38 +645,116 @@ def check_winner(data : dict) -> int:
     
     if nombre_apprenti_joueur1 == 0:
         return 2
-    else:
+    elif nombre_apprenti_joueur2 == 0:
         return 1
-    
-    elif data["turns_without_damage"] <= 100:
-
-
-def play_game(file_name : str):
-    """ This function allows us to play the game. 
-
-    Parameters : 
-    ------------
-    file_name (str): the name of the file to read. 
-
-    Returns : 
-    ---------
-    None 
-    """
-    board ,data = create_board(file_name)
-    
-    display_board(board)
-    
-    while not check_game_over(data):
-        orders = get_orders()
-        apply_order(data, orders)
-        regenerate(data)
-        display_board(board)
+    elif data["tours_sans_damage"] <= 100:
+        if nombre_apprenti_joueur1 > nombre_apprenti_joueur2:
+            return 1
+        else:
+            return 2
         
-    print("Game Over !")
     
-    print(f"Le joueur {check_winner(data)} a gagné la partie !")
+        
+    
+        
+
+def egg_eclosion_check(board: list[dict], data: list[dict]):
+    """Cette fonction vérifie si les œufs sont prêts à éclore ou non et si un apprenti est sur la même case que l'œuf.
+
+    Paramètres:
+    ------------
+    board (list): le plateau du jeu.
+    data (list): liste des joueurs et de leurs positions.
+
+    Retour:
+    -------
+    None
+    """
+    for i in range(len(board)):
+        for j in range(len(board[i])):
+            egg_found = False
+            for element in board[i][j]:
+                if element["type"] == "egg":
+                    egg_found = True
+                    
+                    # Vérifie s'il y a un apprenti sur la même case avant de décrémenter les tours
+                    for player in data:
+                        if player["position"] == (i, j) and player["type"] == "apprenti":
+                            # Si un apprenti est présent, décrémenter les tours de l'œuf
+                            element["tours"] -= 1
+                            if element["tours"] == 0:
+                                # L'œuf éclore en dragon
+                                board[i][j].remove(element)
+                                board[i][j].append({
+                                    "type": "dragon",
+                                    "nom": element["nom"],
+                                    "pv": element["pv"],
+                                    "attaque": element["attaque"],
+                                    "portee": element["portee"],
+                                    "regen": element["regen"]
+                                })
+                                data["dragons"]["player"].append({
+                                    "nom": element["nom"],
+                                    "pv": element["pv"],
+                                    "attaque": element["attaque"],
+                                    "portee": element["portee"],
+                                    "regen": element["regen"]
+                                })
+                                    
+                                print(f"🥚 L'œuf {element['nom']} a éclos en dragon !")
+                            break  # Arrêter de vérifier une fois qu'on a trouvé l'apprenti et traité l'éclosion
+
     
     
+    
+    
+def play_game(file_name: str):
+    """ 
+    This function allows us to play the game. 
+
+    Parameters:
+    -----------
+    file_name (str): The name of the file to read.
+
+    Returns:
+    --------
+    None: The game will be played directly.
+    
+    version
+    --------
+    sepecifications : Mohamed Aziz Sebri (v1 20/02/2025)
+    """
+    board, data = create_board(file_name)  # Créer le plateau de jeu et les données
+    display_board(board)  # Afficher le plateau au début du jeu
+    data["tours"] = 0  # Initialiser le compteur de tours sans dégâts
+    players = [1, 2]  # Liste des joueurs (Joueur 1 et Joueur 2)
+    current_turn = 0   # Indice pour alterner entre les joueurs
+    
+    while not check_game_over(data):  # Tant que le jeu n'est pas terminé
+        current_player = players[current_turn]
+        orders = get_orders(data, board, current_player)
+
+        if orders is None:
+            # Si les ordres sont invalides, on passe au joueur suivant sans appliquer d'ordres
+            print(f"Joueur {current_player} : Ordres non valides, passage au joueur suivant.")
+            current_turn = (current_turn + 1) % len(players)  # Passer au joueur suivant
+        else:
+            # Si les ordres sont valides, on les applique
+            apply_order(board, orders,data, current_player)  # Appliquer les ordres au plateau
+            egg_eclosion_check(board ,data)  # Vérifier l'éclosion des œufs
+            regenerate(data)  # Régénérer les données du jeu (par exemple, recharger les ressources)
+
+            # Afficher le plateau après l'application des ordres
+            display_board(board)
+
+            # Passer au joueur suivant (alterner entre 0 et 1)
+            current_turn = (current_turn + 1) % len(players)
+
+    # Lorsque la partie est terminée, afficher le résultat
+    print("\nGame Over !")
+    winner = check_winner(data)
+    print(f"🏆 Le joueur {winner} a gagné la partie !")
+
 
 #i gonna run the game
 
