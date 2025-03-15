@@ -1,6 +1,8 @@
 import time
 from blessed import Terminal
 from colored import fg, bg, attr
+import random
+#from remote_play import create_connection, get_remote_orders, notify_remote_orders, close_connection
 
 # Initialisation du terminal
 term = Terminal()
@@ -25,7 +27,8 @@ def read_file(file_name: str) -> dict:
         "altars": {},
         "apprentices": {},
         "eggs": {} ,
-        "tours_sans_damage" : 0
+        "tours_sans_damage" : 0,
+        "dragons" : {}
     }
     
     
@@ -113,7 +116,7 @@ def read_file(file_name: str) -> dict:
 
     return data
 
-def check_position(x : int, y: int, dict : list, errors : list):
+def check_position(x : int, y: int, data : list, errors : list):
     """ This function checks if the position is valid or not. 
     
         Parameters:
@@ -128,10 +131,10 @@ def check_position(x : int, y: int, dict : list, errors : list):
          None
     """
     
-    if (x, y) in dict["altars"] :
+    if (x, y) in data["altars"] :
         errors.append(f"Position déjà occupée par un altar : ({x}, {y})")
     
-    elif (x,y) in dict["apprentices"] :
+    elif (x,y) in data["apprentices"] :
         errors.append(f"Position déjà occupée par un apprenti: ({x}, {y})")
     
     else:
@@ -348,7 +351,7 @@ def display_board(board):
     time.sleep(0.5)
     print(term.blink("⌛"))
 
-def get_orders(data: list[dict], board: list[list], current_player: int) -> list[dict]:
+def get_orders(data: list[dict], board: list[list], current_player: int ,player_type:str) -> list[dict]:
     """ this function receives the orders from the player and returns a list of dictionaries containing the orders to be applied on the board.
     
     Parameters:
@@ -364,6 +367,8 @@ def get_orders(data: list[dict], board: list[list], current_player: int) -> list
     version : 1.0
     specifiations : Mohamed aziz Sebri 
     """
+    if player_type == "AI":
+        return naive_ai(data, board, current_player)  # Générer des ordres IA
     
     orders = input(f"\n🎮 Tour du Joueur {current_player} : Entrez vos ordres :")
     orders = orders.split(" ")  # Convertir en liste
@@ -375,7 +380,7 @@ def get_orders(data: list[dict], board: list[list], current_player: int) -> list
         if orders[0] != "summon":
             player_has_errors = True
 
-    # Vérifier si ":@" vient après ":x" (mauvais ordre)
+    # Vérifier si ":@" vient après ":x" (mauvais ordre) maroc:@12-13 
     index_at = -1
     index_x = -1
 
@@ -393,7 +398,7 @@ def get_orders(data: list[dict], board: list[list], current_player: int) -> list
         order = order.strip()
 
         # Ordre d'attaque "name:xDirection"
-        if ":x" in order:
+        if ":x" in order:#maroc:xN
             parts = order.split(":x")
             if len(parts) == 2:
                 name = parts[0]
@@ -471,6 +476,29 @@ def check_propre_apprenti(data : dict, current_player : int, name : str) -> bool
         if apprenti["nom"] == name:
             return True
     return False
+
+def check_propre_element(data : dict, current_player : int, name : str) -> bool:
+    """ This function checks if the player has the element he wants to move. 
+
+    Parameters : 
+    ------------
+    data (dict): the data of the game. 
+    current_player (int): the current player. 
+    name (str): the name of the element to check. 
+
+    Returns : 
+    ---------
+    bool : True if the player has the apprentice, False otherwise. 
+    """
+    
+    for apprenti in data["apprentices"][current_player]:
+        if apprenti["nom"] == name:
+            return True
+    if len(data["dragons"]) > 0 :
+        for dragon in data["dragons"][current_player]:
+            if dragon["nom"] == name:
+                return True
+    return False
     
 def apply_order(board : dict, orders : list[dict] , data : list[list] , current_player : int): 
     """ This function receives the order to move the player's dragons and apprentices to the desired position. 
@@ -521,7 +549,7 @@ def move_element(board, name, row, col):
 def check_valid_move(board: list[list], name: str, row: int, col: int) -> bool:
     """Verify if the move is valid or not.
 
-    Args:
+    parameters:
         board (list[list]): the board of the game.
         name (str): name of element to move.
         row (int): the row to move to.
@@ -557,54 +585,242 @@ def check_valid_move(board: list[list], name: str, row: int, col: int) -> bool:
     return False
 
 
+def get_attacked_positions(dragon : dict) -> list:
+    """Retourne les cases touchées par l'attaque d'un dragon."""
+    
+    directions = {
+        "N": (0, -1),
+        "NE": (1, -1),
+        "E": (1, 0),
+        "SE": (1, 1),
+        "S": (0, 1),
+        "SW": (-1, 1),
+        "W": (-1, 0),
+        "NW": (-1, -1)
+    }
+    x, y = dragon["position"]  # Coordonnées du dragon
+    dx, dy = directions[dragon["direction"]]  # Déplacement en x et y selon la direction
+    portee = dragon["portee"]  # Portée de l'attaque
+    
+    positions = []  # Liste des cases attaquées
+    for i in range(1, portee + 1):  # On avance case par case
+        positions.append((x + i * dx, y + i * dy))  # Ajoute la case touchée
+    
+    return positions  # Retourne la liste des cases attaquées
 
+def get_apprenti_by_dragon(dragon_id : int, data : dict) -> dict:
+    """ Trouve l'apprenti qui a créé un dragon """
+    for apprenti in data["apprentices"][1] + data["apprentices"][2]:
+        if apprenti["type"] == "apprenti" and apprenti["id"] == data["dragons"][dragon_id]["creator_id"]:
+            return apprenti
+    return None
 
-def attack (data : dict , name : str, direction : str):
-    """ This function receives the order to attack and allows the dragon to attack the other dragons or the apprentices within his range. 
+def attack(board: list[list], data: dict):
+    """handles the attack of the dragons on the board.
 
-    Parameters : 
+    parameters: :
     ------------
-    name (str): the name of the dragon that will attack
-    direction (str): the direction in which the dragon will attack
+    board (list): the board of the game.
+    data (dict): the data of the game.
 
-    Returns : 
-    ---------
-    None 
-
+    returns :
+    --------
+    None
     """
-    
 
-def summon(board, data, current_player):
-    """Cette fonction déplace les apprentis du joueur vers l'autel puis les ramène à leurs positions initiales."""
-    
+    attaques = []  # Liste des attaques à appliquer
+
+    #Récupérer toutes les attaques des dragons
+    for apprenti, dragons in data["dragons"].items():
+        for dragon in dragons:
+            attacked_positions = get_attacked_positions(dragon)  # Cases attaquées
+            attaques.append((dragon, attacked_positions))
+
+    #Appliquer les attaques à tous les personnages sur le plateau
+    for dragon, attacked_positions in attaques:
+        for i in range(len(board)):
+            for j in range(len(board[i])):
+                elements = board[i][j]
+
+                for target in elements:
+                    if target["position"] in attacked_positions:
+                        target["pv"] -= dragon["attaque"]
+
+                        # Si la cible meurt
+                        if target["pv"] <= 0:
+                            target["status"] = "dead"
+                            print(f"{target['nom']} est mort.")
+
+                            # Supprimer ses dragons s'il est un apprenti
+                            if target["type"] == "apprenti" and target["nom"] in data["dragons"]:
+                                for d in data["dragons"][target["nom"]]:
+                                    d["status"] = "dead"
+                                    print(f"Le dragon {d['nom']} de {target['nom']} est mort.")
+                                del data["dragons"][target["nom"]]
+
+                            # Si c'est un dragon, l'apprenti créateur perd 10 PV
+                            if target["type"] == "dragon":
+                                creator_name = target["name_apprenti"]
+                                for apprenti in data["apprentices"]:
+                                    if apprenti["nom"] == creator_name:
+                                        apprenti["pv"] -= 10
+                                        if apprenti["pv"] <= 0:
+                                            apprenti["status"] = "dead"
+                                            print(f"L'apprenti {creator_name} est mort.")
+
+def summon(board: list[list], data: dict, current_player: int):
+    """This function allows the player to summon a dragon or the apprentices on the board.
+
+    Parameters:
+    ------------
+    board (list): The board of the game.
+    data (dict): The data of the game.
+    current_player (int): The current player.
+
+    Returns:
+        None
+    """
+
     # Parcourir chaque apprenti du joueur
     for apprenti in data["apprentices"][current_player]:
         # Récupérer la position initiale de l'apprenti
         initial_position = apprenti["position"]  # position sous forme de (x, y)
         initial_x, initial_y = initial_position
-        
-        # Chercher l'apprenti sur le plateau
-        for row in range(len(board)):
-            for col in range(len(board[row])):
+
+        trouve = False
+        row = 0
+        while row < len(board) and not trouve:
+            col = 0
+            while col < len(board[row]) and not trouve:
                 for element in board[row][col]:
                     if element.get("nom") == apprenti["nom"] and element.get("joueur") == current_player:
-                        move_element(board, apprenti["nom"], initial_x -1, initial_y-1)
-                        break
+                        move_element(board, apprenti["nom"], initial_x - 1, initial_y - 1)
+                        trouve = True
+                col += 1
+            row += 1
 
-
-
-def regenerate(data : dict):
-    """ This function allows the dragons and the apprentices to regenerate their health points.
-
-    Parameters : 
-    ------------
-    board (list): the board of the game. 
-
-    Returns : 
-    ---------
-    None 
-
+def naive_ai(data: dict, board: list[list], current_player: int) -> list[dict]:
+    """ 
+    this function allow the AI to play the game.
+    
+    Parameters:
+    -----------
+    data (dict): the data of the game.
+    board (list[list]): the board of the game
+    current_player (int): the current player. here is the IA 
+    
+    Returns:
+    --------
+    list[dict]: a list of dictionaries containing the orders to be applied on the board.
     """
+    
+    orders = []
+    for i in range(len(board)):
+        for j in range(len(board[i])):
+            for element in board[i][j]:
+                if element["type"] in ["apprenti" , "dragon"] and check_propre_element(data, current_player, element["nom"]) :
+                    # Récupérer toutes les cases où l'élément peut se déplacer
+                        x, y = i, j
+                        valides_moves = []
+                        possible_moves = [
+                        (x-1,y+1), (x,y+1), (x+1,y+1),
+                        (x-1,y ),            (x+1,y),
+                        (x-1,y-1), (x,y-1), (x+1,y-1)
+                        ]
+                        
+                        for dx, dy in possible_moves:
+                            if check_valid_move(board, element["nom"], dx, dy):
+                                valides_moves.append((dx, dy))
+                                
+                        attacked_directions = get_attacked_positions(element)
+                        valides_directions = convert_positions_to_directions(attacked_directions, (i, j))
+                        
+                    # Priorité : se déplacer si possible, sinon attaquer, sinon invoquer
+                        if valides_moves:
+                            row, col = random.choice(valides_moves)
+                            orders.append({
+                            "type": "move",
+                            "name": element["nom"],
+                            "row": row,
+                            "col": col,
+                        })
+                        elif valides_directions :
+                            direction = random.choice(valides_directions)
+                            orders.append({
+                                "type": "attack",
+                                "name": element["nom"],
+                                "direction": direction,
+                            })
+                        else:
+                            orders.append({"type": "summon"})
+    
+    return orders
+
+def convert_positions_to_directions(attacked_positions : list[tuple] , dragon_position : tuple) -> list:
+    """convert a list of positions to a list directions.
+    
+    Parameters:
+    -----------
+    positions (list): a list of positions.
+    
+    Returns:
+    --------
+    list: a list of directions.
+    
+    version : 1.0
+    specifications : Mohamed Aziz Sebri (v1 15/03/2025)
+    implementation : Mohamed Aziz Sebri (v1 15/03/2025)
+    
+    example:
+    --------
+    convert_positions_to_directions([x, y+1), (x+1, y-1), (x-1, y)]) => ["N", "NE", "W"]
+    
+    """
+
+    directions_map = {
+        (0, -1): "N", (1, -1): "NE", (1, 0): "E", (1, 1): "SE",
+        (0, 1): "S", (-1, 1): "SW", (-1, 0): "W", (-1, -1): "NW"
+    }
+    
+    valid_directions = []
+    x0 , y0 = dragon_position
+    
+    for x, y in attacked_positions:
+        dx , dy = x -x0 , y - y0
+        if (dx, dy) in directions_map:
+            valid_directions.append(directions_map[(dx, dy)])
+    return valid_directions
+def regenerate(data: dict):
+    """ 
+    This function allows the dragons and appprentices to regenerate their health point (point de vie) .
+
+    Parameters:
+    -----------
+    data (list): the data of the game.(and here i need just the apprenctices and dragons informations)
+
+    Returns:
+    --------
+    None: The dragons will regenerate their health points directly.
+    
+    version
+    --------
+    sepecifications : Aziz Slimi (v1 21/02/2025)
+    """
+    
+    # Régénérer les points de vie des apprentis
+    for player in [1, 2]:
+        if player in data["apprentices"]:
+            for apprenti in data["apprentices"][player]:
+                apprenti["pv"] = min(apprenti["pv"] + apprenti["regen"], apprenti["pv"])
+    
+    # Vérifier si des dragons existent avant d'y accéder
+    if len(data["dragons"]) > 0:
+        for player in [1, 2]:
+            if player in data["dragons"]:
+                for dragon in data["dragons"][player]:
+                    dragon["pv"] = min(dragon["pv"] + dragon["regen"], dragon["pv"])
+
+    
 
     
 
@@ -658,104 +874,121 @@ def check_winner(data : dict) -> int:
     
         
 
-def egg_eclosion_check(board: list[dict], data: list[dict]):
-    """Cette fonction vérifie si les œufs sont prêts à éclore ou non et si un apprenti est sur la même case que l'œuf.
+def egg_eclosion_check(board: list[list], data: dict):
+    """this function checks if the egg is ready to hatch or not.
 
-    Paramètres:
+    parameters:
     ------------
-    board (list): le plateau du jeu.
-    data (list): liste des joueurs et de leurs positions.
+    board (list): the board of the game.
+    data (dict): the data of the game, including the list of dragons per apprentice.
 
-    Retour:
+    returns:
     -------
     None
+    
+    version : 1.0
+    specifications : Aziz Slimi (v1 21/02/2025)
+    implementation : Mohamed Aziz Sebri (v1 27/02/2025)
     """
     for i in range(len(board)):
         for j in range(len(board[i])):
-            egg_found = False
-            for element in board[i][j]:
+            # Vérifier si la case contient exactement un œuf et un apprenti
+            elements = board[i][j]
+            egg_count = 0
+            apprentice_count = 0
+            egg = None
+            apprentice = None
+            
+            for element in elements:
                 if element["type"] == "egg":
-                    egg_found = True
+                    egg_count += 1
+                    egg = element  # Garder une référence à l'œuf
+                elif element["type"] == "apprenti":
+                    apprentice_count += 1
+                    apprentice = element  # Garder une référence à l'apprenti
+            
+            # Si la case contient exactement un œuf et un apprenti
+            if egg_count == 1 and apprentice_count == 1:
+                # Vérifier si l'œuf et l'apprenti sont sur la même case
+                if egg and apprentice:
+                    # Décrémenter les tours de l'œuf
+                    egg["tours"] -= 1
                     
-                    # Vérifie s'il y a un apprenti sur la même case avant de décrémenter les tours
-                    for player in data:
-                        if player["position"] == (i, j) and player["type"] == "apprenti":
-                            # Si un apprenti est présent, décrémenter les tours de l'œuf
-                            element["tours"] -= 1
-                            if element["tours"] == 0:
-                                # L'œuf éclore en dragon
-                                board[i][j].remove(element)
-                                board[i][j].append({
-                                    "type": "dragon",
-                                    "nom": element["nom"],
-                                    "pv": element["pv"],
-                                    "attaque": element["attaque"],
-                                    "portee": element["portee"],
-                                    "regen": element["regen"]
-                                })
-                                data["dragons"]["player"].append({
-                                    "nom": element["nom"],
-                                    "pv": element["pv"],
-                                    "attaque": element["attaque"],
-                                    "portee": element["portee"],
-                                    "regen": element["regen"]
-                                })
-                                    
-                                print(f"🥚 L'œuf {element['nom']} a éclos en dragon !")
-                            break  # Arrêter de vérifier une fois qu'on a trouvé l'apprenti et traité l'éclosion
-
+                    # Vérifier si l'œuf est prêt à éclore
+                    if egg["tours"] == 0:
+                        # L'œuf éclot en dragon
+                        board[i][j].remove(egg)
+                        dragon = {
+                            "type": "dragon",
+                            "name_apprenti": apprentice["nom"],
+                            "nom": egg["nom"],
+                            "pv": egg["pv"],
+                            "attaque": egg["attaque"],
+                            "portee": egg["portee"],
+                            "regen": egg["regen"]
+                        }
+                        board[i][j].append(dragon)
+                        
+                        # Ajouter le dragon dans la liste des dragons de l'apprenti
+                        if apprentice["nom"] not in data["dragons"]:
+                            data["dragons"][apprentice["nom"]] = []  # Créer une liste si elle n'existe pas
+                        data["dragons"][apprentice["nom"]].append(dragon)  # Ajouter le dragon
+                  
+                        
     
     
-    
-    
-def play_game(file_name: str):
-    """ 
-    This function allows us to play the game. 
+def play_game(file_name: str, type_1: str, type_2: str):
+    """
+    This function allows us to play the game with local, AI, and remote players.
 
     Parameters:
     -----------
     file_name (str): The name of the file to read.
-
-    Returns:
-    --------
-    None: The game will be played directly.
-    
-    version
-    --------
-    sepecifications : Mohamed Aziz Sebri (v1 20/02/2025)
+    type_1 (str): Type of player 1 ('human', 'AI', or 'remote').
+    type_2 (str): Type of player 2 ('human', 'AI', or 'remote').
     """
-    board, data = create_board(file_name)  # Créer le plateau de jeu et les données
-    display_board(board)  # Afficher le plateau au début du jeu
-    data["tours"] = 0  # Initialiser le compteur de tours sans dégâts
-    players = [1, 2]  # Liste des joueurs (Joueur 1 et Joueur 2)
-    current_turn = 0   # Indice pour alterner entre les joueurs
-    
-    while not check_game_over(data):  # Tant que le jeu n'est pas terminé
+    board, data = create_board(file_name)
+    display_board(board)
+    data["tours"] = 0
+    players = [1, 2]
+    current_turn = 0
+
+    # Create remote connection if necessary
+    connection = None
+    if type_1 == 'remote':
+        #connection = create_connection(2, 1)
+        pass
+    elif type_2 == 'remote':
+        #connection = create_connection(1, 2)
+        pass
+
+    while not check_game_over(data):
         current_player = players[current_turn]
-        orders = get_orders(data, board, current_player)
-
+        
+        player_type = type_1 if current_player == 1 else type_2
+        orders = get_orders(data , board , current_player , player_type)
         if orders is None:
-            # Si les ordres sont invalides, on passe au joueur suivant sans appliquer d'ordres
             print(f"Joueur {current_player} : Ordres non valides, passage au joueur suivant.")
-            current_turn = (current_turn + 1) % len(players)  # Passer au joueur suivant
         else:
-            # Si les ordres sont valides, on les applique
-            apply_order(board, orders,data, current_player)  # Appliquer les ordres au plateau
-            egg_eclosion_check(board ,data)  # Vérifier l'éclosion des œufs
-            regenerate(data)  # Régénérer les données du jeu (par exemple, recharger les ressources)
-
-            # Afficher le plateau après l'application des ordres
+            apply_order(board, orders, data, current_player)
+            egg_eclosion_check(board, data)
+            regenerate(data)
             display_board(board)
+            
+            if (current_player == 1 and type_2 == 'remote') or (current_player == 2 and type_1 == 'remote'):
+                #notify_remote_orders(connection, orders)
+                pass
 
-            # Passer au joueur suivant (alterner entre 0 et 1)
-            current_turn = (current_turn + 1) % len(players)
+        current_turn = (current_turn + 1) % len(players)
 
-    # Lorsque la partie est terminée, afficher le résultat
+    # Close remote connection if necessary
+    if type_1 == 'remote' or type_2 == 'remote':
+        #close_connection(connection)
+        pass
+
     print("\nGame Over !")
     winner = check_winner(data)
-    print(f"🏆 Le joueur {winner} a gagné la partie !")
+    print(f"\U0001F3C6 Le joueur {winner} a gagné la partie !")
 
-
-#i gonna run the game
-
-play_game("plateau.drk")
+# Example usage:
+play_game("plateau.drk", "human", "AI")
