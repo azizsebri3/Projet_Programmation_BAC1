@@ -153,6 +153,7 @@ def create_board(file_name: str) -> list:
     list: a list of lists representing the board
     """
     data = read_file(file_name)
+    data["tours"] = 1
     largeur = data["map"][0]
     hauteur = data["map"][1]
 
@@ -284,7 +285,7 @@ def get_cell_content(cell):
             content = term.bold_green("🐉 ")
     return content
 
-def display_board(board):
+def display_board(data : dict , board : list[list]):
     """show the board on the screen.
     
     parameters:
@@ -295,12 +296,12 @@ def display_board(board):
     --------
         None
     
-    version : 1.0
-     sepecifications : Ahmed Feki (v1 21/02/2025)
-     implementation : Mohamed Aziz Sebri (v1 27/02/2025)
+    version : 2.0
+     specifications : Ahmed Feki (v1 21/02/2025)
+     implementation : Mohamed Aziz Sebri (v2 19/03/2025)
     """
     print(term.home + term.clear)  # Nettoyer l'écran, cacher le curseur
-
+    print(term.center(term.bold(term.red(f"La Tour Actuelle : {data["tours"]} "))))
     hauteur = len(board)
     largeur = len(board[0]) if hauteur > 0 else 0
 
@@ -309,6 +310,30 @@ def display_board(board):
     mid_line    = horizontal_line(largeur, '╠', '╬', '╣')
     bottom_line = horizontal_line(largeur, '╚', '╩', '╝')
 
+    # Collecter les informations sur les cases avec plusieurs éléments
+    multi_element_cases = []
+    for i in range(hauteur):
+        for j in range(largeur):
+            if len(board[i][j]) > 1:  # Si plus de 2 éléments
+                case_info = f"Case ({i},{j}): "
+                elements = {}
+                for element in board[i][j]:
+                    if element["type"] not in elements:
+                        elements[element["type"]] = 1
+                    else:
+                        elements[element["type"]] += 1
+                
+                for elem_type, count in elements.items():
+                    if elem_type == "apprenti":
+                        case_info += f"🧙 x {count} "
+                    elif elem_type == "dragon":
+                        case_info += f"🐉 x {count} "
+                    elif elem_type == "oeuf":
+                        case_info += f"🥚 x {count} "
+                    elif elem_type == "autel":
+                        case_info += f"🏰 x {count} "
+                
+                multi_element_cases.append(case_info)
     # ─────────────────────────────────────────────────────────────────────────
     # 1) Affichage de la ligne supérieure
     print(top_line)
@@ -323,7 +348,7 @@ def display_board(board):
         row_str += "║"  # Fin de la ligne
         print(row_str)
 
-        time.sleep(0.01)  # Petite pause pour effet "dynamique"
+        # time.sleep(0.01)  # Petite pause pour effet "dynamique"
 
         # Après chaque rangée, si ce n'est pas la dernière, on affiche une ligne intermédiaire
         if i < hauteur - 1:
@@ -344,36 +369,47 @@ def display_board(board):
         sep="\n"
     )
     
+    # 5) Affichage des cases avec plusieurs éléments (si nécessaire)
+    if multi_element_cases:
+        print()
+        print(term.bold("📊 Cases avec plusieurs éléments :"))
+        for case_info in multi_element_cases:
+            print(case_info)
 
-    # 5) Attente des ordres du joueur
+    # 6) Attente des ordres du joueur
     print()
+
     print("🎮 En attente des ordres du joueur... ", end="", flush=True)
     time.sleep(0.5)
     print(term.blink("⌛"))
-
+    
 def get_orders(data: list[dict], board: list[list], current_player: int ,player_type:str) -> list[dict]:
-    """ this function receives the orders from the player and returns a list of dictionaries containing the orders to be applied on the board.
+    """ this function receives the orders from the player or the AI and returns a list of dictionaries containing the orders to be applied on the board.
     
     Parameters:
     -----------
     data (list[dict]): the data of the game.
     board (list[list]): the board of the game.
     current_player (int): the current player.
+    player_type (str): the type of the player (AI or human).
     
     Returns:
     --------
     list[dict]: a list of dictionaries containing the orders to be applied on the board.
     
-    version : 1.0
+    version : 2.0
     specifiations : Mohamed aziz Sebri 
+    implementation : Mohamed Aziz Sebri (v2 23/03/2025)
     """
     if player_type == "AI":
-        return naive_ai(data, board, current_player)  # Générer des ordres IA
-    
-    orders = input(f"\n🎮 Tour du Joueur {current_player} : Entrez vos ordres :")
-    orders = orders.split(" ")  # Convertir en liste
+        orders = naive_ai(data, board, current_player)  # IA génère ses ordres sous forme de texte
+        print(f"\n🤖 IA (Joueur {current_player}) a joué : {orders}")  # Afficher les actions de l'IA
+    else:
+        orders = input(f"\n🎮 Tour du Joueur {current_player} : Entrez vos ordres :")
+        
+    orders = orders.split(" ")
     orders_sorted = []
-    player_has_errors = False  # Variable pour vérifier les erreurs
+    player_has_errors = False 
 
     # Vérifier si "summon" est en premier
     if "summon" in orders:
@@ -396,8 +432,8 @@ def get_orders(data: list[dict], board: list[list], current_player: int ,player_
     # Parcourir chaque ordre pour l'analyser
     for order in orders:
         order = order.strip()
-
-        # Ordre d'attaque "name:xDirection"
+        
+        
         if ":x" in order:#maroc:xN
             parts = order.split(":x")
             if len(parts) == 2:
@@ -415,7 +451,7 @@ def get_orders(data: list[dict], board: list[list], current_player: int ,player_
             else:
                 player_has_errors = True
 
-        # Ordre de déplacement "name:@row-col"
+
         elif ":@" in order:
             parts = order.split(":@")
             if len(parts) == 2:
@@ -425,7 +461,7 @@ def get_orders(data: list[dict], board: list[list], current_player: int ,player_
                 if check_propre_apprenti(data, current_player, name) == False:
                     player_has_errors = True
 
-                # Vérifier si la position est valide (ex: "1-2")
+                
                 if "-" in position:
                     coords = position.split("-")
                     if len(coords) == 2 and coords[0].isdigit() and coords[1].isdigit():
@@ -447,7 +483,7 @@ def get_orders(data: list[dict], board: list[list], current_player: int ,player_
             else:
                 player_has_errors = True
 
-        # Ordre d'invocation "summon"
+
         elif order == "summon":
             orders_sorted.append({"type": "summon"})
 
@@ -491,10 +527,9 @@ def check_propre_element(data : dict, current_player : int, name : str) -> bool:
     bool : True if the player has the apprentice, False otherwise. 
     """
     
-    for apprenti in data["apprentices"][current_player]:
-        if apprenti["nom"] == name:
-            return True
-    if len(data["dragons"]) > 0 :
+    if check_propre_apprenti(data , current_player , name) :
+        return True
+    elif len(data["dragons"]) > 0 and current_player in data["dragons"]:
         for dragon in data["dragons"][current_player]:
             if dragon["nom"] == name:
                 return True
@@ -534,15 +569,22 @@ def apply_order(board : dict, orders : list[dict] , data : list[list] , current_
 def move_element(board, name, row, col):
     """ Déplace un apprenti ou un dragon sur le plateau. """
 
+    # Parcourir le plateau pour trouver l'élément
     for i in range(len(board)):
         for j in range(len(board[i])):
             case = board[i][j]
             for element in case:
                 if element.get("nom") == name:
-                    # Effectuer le déplacement
-                    case.remove(element)
-                    board[row][col].append(element)  # Déplacer l'élément
-                    return  # Le déplacement est terminé
+                    # Vérifier si la position cible est valide
+                    if 0 <= row < len(board) and 0 <= col < len(board[0]):
+                        # Effectuer le déplacement
+                        case.remove(element)
+                        board[row][col].append(element)
+                        print(f"{name} a été déplacé à ({row}, {col}).")
+                    else:
+                        print(f"Erreur : La position ({row}, {col}) est invalide.")
+                    return  # Arrêter la recherche après le déplacement
+    print(f"Erreur : L'élément '{name}' n'a pas été trouvé sur le plateau.")
     
 
 
@@ -731,30 +773,21 @@ def naive_ai(data: dict, board: list[list], current_player: int) -> list[dict]:
                         for dx, dy in possible_moves:
                             if check_valid_move(board, element["nom"], dx, dy):
                                 valides_moves.append((dx, dy))
-                                
-                        attacked_directions = get_attacked_positions(element)
-                        valides_directions = convert_positions_to_directions(attacked_directions, (i, j))
+                        if element["type"] == "dragon" and current_player in data["dragons"]:
+                            attacked_directions = get_attacked_positions(element)
+                            valides_directions = convert_positions_to_directions(attacked_directions, (i, j))
                         
                     # Priorité : se déplacer si possible, sinon attaquer, sinon invoquer
                         if valides_moves:
                             row, col = random.choice(valides_moves)
-                            orders.append({
-                            "type": "move",
-                            "name": element["nom"],
-                            "row": row,
-                            "col": col,
-                        })
+                            orders.append(f"{element['nom']}:@{row+1}-{col+1}")
                         elif valides_directions :
                             direction = random.choice(valides_directions)
-                            orders.append({
-                                "type": "attack",
-                                "name": element["nom"],
-                                "direction": direction,
-                            })
+                            orders.append(f"{element['nom']}:x{direction}")
                         else:
-                            orders.append({"type": "summon"})
+                            orders.append("summon")
     
-    return orders
+    return " ".join(orders)
 
 def convert_positions_to_directions(attacked_positions : list[tuple] , dragon_position : tuple) -> list:
     """convert a list of positions to a list directions.
@@ -874,13 +907,14 @@ def check_winner(data : dict) -> int:
     
         
 
-def egg_eclosion_check(board: list[list], data: dict):
+def egg_eclosion_check(board: list[list], data: dict , current_player:int):
     """this function checks if the egg is ready to hatch or not.
 
     parameters:
     ------------
     board (list): the board of the game.
     data (dict): the data of the game, including the list of dragons per apprentice.
+    current_player(int) : number (1 or 2 ) to precise the current player .
 
     returns:
     -------
@@ -931,8 +965,8 @@ def egg_eclosion_check(board: list[list], data: dict):
                         
                         # Ajouter le dragon dans la liste des dragons de l'apprenti
                         if apprentice["nom"] not in data["dragons"]:
-                            data["dragons"][apprentice["nom"]] = []  # Créer une liste si elle n'existe pas
-                        data["dragons"][apprentice["nom"]].append(dragon)  # Ajouter le dragon
+                            data["dragons"][current_player] = []  # Créer une liste si elle n'existe pas
+                        data["dragons"][current_player].append(dragon)  # Ajouter le dragon
                   
                         
     
@@ -948,11 +982,9 @@ def play_game(file_name: str, type_1: str, type_2: str):
     type_2 (str): Type of player 2 ('human', 'AI', or 'remote').
     """
     board, data = create_board(file_name)
-    display_board(board)
-    data["tours"] = 0
+    display_board(data , board)
     players = [1, 2]
     current_turn = 0
-
     # Create remote connection if necessary
     connection = None
     if type_1 == 'remote':
@@ -964,23 +996,23 @@ def play_game(file_name: str, type_1: str, type_2: str):
 
     while not check_game_over(data):
         current_player = players[current_turn]
-        
         player_type = type_1 if current_player == 1 else type_2
         orders = get_orders(data , board , current_player , player_type)
         if orders is None:
             print(f"Joueur {current_player} : Ordres non valides, passage au joueur suivant.")
         else:
             apply_order(board, orders, data, current_player)
-            egg_eclosion_check(board, data)
+            egg_eclosion_check(board, data ,current_player)
             regenerate(data)
-            display_board(board)
+            display_board(data , board)
             
             if (current_player == 1 and type_2 == 'remote') or (current_player == 2 and type_1 == 'remote'):
                 #notify_remote_orders(connection, orders)
                 pass
 
         current_turn = (current_turn + 1) % len(players)
-
+        if current_turn == 0:
+            data["tours"] += 1
     # Close remote connection if necessary
     if type_1 == 'remote' or type_2 == 'remote':
         #close_connection(connection)
