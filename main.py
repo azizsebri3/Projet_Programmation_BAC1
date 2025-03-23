@@ -211,8 +211,7 @@ def place_apprentices(board, data):
                     "pv": apprentice["pv"],
                     "regen": apprentice["regen"]
                 })
-            else:
-                print(f"❌ Erreur: Coordonnées invalides pour l'apprenti {apprentice['nom']} : ({x}, {y})")
+            
 
 
 def place_eggs(board, data):
@@ -235,8 +234,7 @@ def place_eggs(board, data):
                 "portee": egg["portee"],
                 "regen": egg["regen"]
             })
-        else:
-            print(f"❌ Erreur: Coordonnées invalides pour l'œuf {egg['nom']} : ({x}, {y})")
+        
 
 
 
@@ -260,11 +258,14 @@ def horizontal_line(largeur : int, left_char :str, mid_char:str, right_char:str)
     return line
 
 def get_cell_content(cell):
+    """this function returns the content of a cell on the board.
+   by prioritizing the elements to display. altars > apprentices > eggs > dragons.
+   
+    parameters:
+    ------------
+        cell (list): the content of the cell.
     """
-    Retourne le contenu à afficher dans la case (icône + couleur).
-    S'il y a plusieurs éléments dans la case, on affiche
-    celui qui a la priorité (ex: altar > apprenti > egg > dragon).
-    """
+    
     if not cell:
         return " . "  # Case vide
     
@@ -303,7 +304,11 @@ def display_board(data : dict , board : list[list]):
     print(term.home + term.clear)  # Nettoyer l'écran, cacher le curseur
     print(term.center(term.bold(term.red(f"La Tour Actuelle : {data["tours"]} "))))
     hauteur = len(board)
-    largeur = len(board[0]) if hauteur > 0 else 0
+    largeur = 0
+    if hauteur > 0 :
+        largeur = len(board[0])
+    else:
+        largeur = 0
 
     # Lignes de bordure (haut, séparateur intermédiaire, bas)
     top_line    = horizontal_line(largeur, '╔', '╦', '╗')
@@ -315,7 +320,7 @@ def display_board(data : dict , board : list[list]):
     for i in range(hauteur):
         for j in range(largeur):
             if len(board[i][j]) > 1:  # Si plus de 2 éléments
-                case_info = f"Case ({i},{j}): "
+                case_info = f"Case ({i+1},{j+1}): "
                 elements = {}
                 for element in board[i][j]:
                     if element["type"] not in elements:
@@ -328,17 +333,15 @@ def display_board(data : dict , board : list[list]):
                         case_info += f"🧙 x {count} "
                     elif elem_type == "dragon":
                         case_info += f"🐉 x {count} "
-                    elif elem_type == "oeuf":
+                    elif elem_type == "egg":
                         case_info += f"🥚 x {count} "
-                    elif elem_type == "autel":
+                    elif elem_type == "altar":
                         case_info += f"🏰 x {count} "
                 
                 multi_element_cases.append(case_info)
-    # ─────────────────────────────────────────────────────────────────────────
-    # 1) Affichage de la ligne supérieure
+   
     print(top_line)
 
-    # 2) Pour chaque rangée du board
     for i in range(hauteur):
         # Construire la ligne de contenu : ex: ║ . ║ 🏰 ║ 🧙 ║
         row_str = ""
@@ -354,13 +357,13 @@ def display_board(data : dict , board : list[list]):
         if i < hauteur - 1:
             print(mid_line)
 
-    # 3) Affichage de la ligne inférieure
+    
     print(bottom_line)
 
     # ─────────────────────────────────────────────────────────────────────────
     # 4) Affichage de la légende
     print()
-    print(term.bold("📜 Légende :"))
+    print(term.bold("Légende :"))
     print(
         term.red("🏰 = Autel  "),
         term.blue("🧙 = Apprenti  "),
@@ -372,16 +375,15 @@ def display_board(data : dict , board : list[list]):
     # 5) Affichage des cases avec plusieurs éléments (si nécessaire)
     if multi_element_cases:
         print()
-        print(term.bold("📊 Cases avec plusieurs éléments :"))
+        print(term.bold("Cases avec plusieurs éléments :"))
         for case_info in multi_element_cases:
             print(case_info)
 
     # 6) Attente des ordres du joueur
     print()
 
-    print("🎮 En attente des ordres du joueur... ", end="", flush=True)
+    print("En attente des ordres du joueur... ", end="", flush=True)
     time.sleep(0.5)
-    print(term.blink("⌛"))
     
 def get_orders(data: list[dict], board: list[list], current_player: int ,player_type:str) -> list[dict]:
     """ this function receives the orders from the player or the AI and returns a list of dictionaries containing the orders to be applied on the board.
@@ -403,9 +405,9 @@ def get_orders(data: list[dict], board: list[list], current_player: int ,player_
     """
     if player_type == "AI":
         orders = naive_ai(data, board, current_player)  # IA génère ses ordres sous forme de texte
-        print(f"\n🤖 IA (Joueur {current_player}) a joué : {orders}")  # Afficher les actions de l'IA
+        print(f"\nIA (Joueur {current_player}) a joué : {orders}")  # Afficher les actions de l'IA
     else:
-        orders = input(f"\n🎮 Tour du Joueur {current_player} : Entrez vos ordres :")
+        orders = input(f"\nTour du Joueur {current_player} : Entrez vos ordres :")
         
     orders = orders.split(" ")
     orders_sorted = []
@@ -551,23 +553,32 @@ def apply_order(board : dict, orders : list[dict] , data : list[list] , current_
     for order in orders : 
         if order["type"] == "move":
             move_element(board, order["name"], order["row"], order["col"])
-            print(f"{order['name']} a été déplacé à la position ({order['row']}, {order['col']})")
-        
+            
         elif order["type"] == "attack":
             attack(board , order["name"], order["direction"])
-            print(f"{order['name']} a attaqué dans la direction {order['direction']}")
+            
         
         elif order["type"] == "summon":
             summon(board , data , current_player)
-            print("Le joueur a activé le summon !")
-        
-        else:
-            print(f" Erreur: Instruction invalide : {order}")
     
     
 
 def move_element(board, name, row, col):
-    """ Déplace un apprenti ou un dragon sur le plateau. """
+    """ move the element to the desired position.
+
+    Args:
+        board (list[list]): the board of the game.
+        name (str): the name of the element
+        row (int): the row to move to.
+        col (int): the column to move to.
+
+    Returns:
+        None
+    
+    version : 1.0
+    specifications :hiba bargi (v1 21/02/2025)
+    implementation : Mohamed Aziz Sebri , ahmed feki (v1 24/02/2025)
+    """
 
     # Parcourir le plateau pour trouver l'élément
     for i in range(len(board)):
@@ -599,6 +610,10 @@ def check_valid_move(board: list[list], name: str, row: int, col: int) -> bool:
 
     Returns:
         bool: True if the move is valid, False otherwise.
+    
+    version : 1.0
+    specifications :hiba bargi (v1 21/02/2025)
+    implementation : Mohamed Aziz Sebri , ahmed feki (v1 24/02/2025)
     """
 
     # Vérifier si la position cible est dans les limites du plateau
@@ -628,7 +643,20 @@ def check_valid_move(board: list[list], name: str, row: int, col: int) -> bool:
 
 
 def get_attacked_positions(dragon : dict) -> list:
-    """Retourne les cases touchées par l'attaque d'un dragon."""
+    """get the attacked positions by the dragon.
+    
+    parameters:
+    -----------
+    dragon (dict): the dragon that attacks.
+    
+    returns:
+    --------
+    list: a list of attacked positions.
+    
+    version : 1.0
+    specifications :hiba bargi (v1 21/02/2025)
+    implementation :  ahmed feki , mohamed aziz slimi , mohamed aziz sebri (v1 24/02/2025)
+    """
     
     directions = {
         "N": (0, -1),
@@ -658,7 +686,7 @@ def get_apprenti_by_dragon(dragon_id : int, data : dict) -> dict:
     return None
 
 def attack(board: list[list], data: dict):
-    """handles the attack of the dragons on the board.
+    """This function receives the order to attack and allows the dragon to attack the other dragons or the apprentices within his range. 
 
     parameters: :
     ------------
@@ -668,6 +696,11 @@ def attack(board: list[list], data: dict):
     returns :
     --------
     None
+    
+    version : 2.0
+    specifications :hiba bargi (v1 21/02/2025) / Mohamed Aziz Sebri (v2 23/03/2025)
+    implementation : Mohamed Aziz Sebri , ahmed feki (v1 24/02/2025)
+    
     """
 
     attaques = []  # Liste des attaques à appliquer
@@ -753,7 +786,11 @@ def naive_ai(data: dict, board: list[list], current_player: int) -> list[dict]:
     
     Returns:
     --------
-    list[dict]: a list of dictionaries containing the orders to be applied on the board.
+    string: the orders to be applied on the board.
+    
+    version : 1.0
+    specifications : Ahmed Feki (v1 13/03/2025)
+    implementation : Mohamed Aziz Sebri ,Mohamed Aziz Slimi (v1 23/03/2025)
     """
     
     orders = []
@@ -763,6 +800,7 @@ def naive_ai(data: dict, board: list[list], current_player: int) -> list[dict]:
                 if element["type"] in ["apprenti" , "dragon"] and check_propre_element(data, current_player, element["nom"]) :
                     # Récupérer toutes les cases où l'élément peut se déplacer
                         x, y = i, j
+                        possibles_actions = []
                         valides_moves = []
                         possible_moves = [
                         (x-1,y+1), (x,y+1), (x+1,y+1),
@@ -773,21 +811,27 @@ def naive_ai(data: dict, board: list[list], current_player: int) -> list[dict]:
                         for dx, dy in possible_moves:
                             if check_valid_move(board, element["nom"], dx, dy):
                                 valides_moves.append((dx, dy))
+                                
                         if element["type"] == "dragon" and current_player in data["dragons"]:
                             attacked_directions = get_attacked_positions(element)
                             valides_directions = convert_positions_to_directions(attacked_directions, (i, j))
                         
-                    # Priorité : se déplacer si possible, sinon attaquer, sinon invoquer
                         if valides_moves:
                             row, col = random.choice(valides_moves)
-                            orders.append(f"{element['nom']}:@{row+1}-{col+1}")
+                            possibles_actions.append(f"{element['nom']}:@{row+1}-{col+1}")
+                            
                         elif valides_directions :
                             direction = random.choice(valides_directions)
-                            orders.append(f"{element['nom']}:x{direction}")
+                            possibles_actions.append(f"{element['nom']}:x{direction}")
+                            
                         else:
-                            orders.append("summon")
+                            possibles_actions.append("summon")
+                        
+                        if possibles_actions:
+                            order = random.choice(possibles_actions)
+                            orders.append(order)
     
-    return " ".join(orders)
+    return order
 
 def convert_positions_to_directions(attacked_positions : list[tuple] , dragon_position : tuple) -> list:
     """convert a list of positions to a list directions.
@@ -868,6 +912,10 @@ def check_game_over(data : dict) -> bool:
     Returns:
     --------
     bool: True if the game is over, False otherwise.
+    
+    version : 1.0
+    sepecifications : Ahmed Feki (v1 21/02/2025)
+    implementation : Mohamed Aziz Sebri  , ahmed feki (v1 27/02/2025)
     """
     nombre_apprenti_joueur1 = len(data["apprentices"][1])
     nombre_apprenti_joueur2 = len(data["apprentices"][2])
@@ -887,7 +935,11 @@ def check_winner(data : dict) -> int:
 
     Returns : 
     ---------
-    int : the number of the winner player 
+    int : the number of the winner player
+    
+    version : 1.0
+    sepecifications : Mohamed Aziz Sebri (v1 20/02/2025)
+    implementation : Mohamed Aziz Sebri (v1 27/02/2025)
     """
     nombre_apprenti_joueur1 = len(data["apprentices"][1])
     nombre_apprenti_joueur2 = len(data["apprentices"][2])
@@ -980,6 +1032,14 @@ def play_game(file_name: str, type_1: str, type_2: str):
     file_name (str): The name of the file to read.
     type_1 (str): Type of player 1 ('human', 'AI', or 'remote').
     type_2 (str): Type of player 2 ('human', 'AI', or 'remote').
+    
+    Returns:
+    --------
+    None
+    
+    version : 1.0
+    sepecifications : Mohamed Aziz Sebri (v1 20/02/2025)
+    implementation : Mohamed Aziz Sebri , ahmed feki , mohamed aziz slimi (v1 23/03/2025)
     """
     board, data = create_board(file_name)
     display_board(data , board)
